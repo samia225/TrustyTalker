@@ -15,17 +15,32 @@
     if (functionName) J[functionName] = check.run;
   }
 
-  // Build a hint with the starter fields plus the agreed extra fields.
-  // The quote must appear word for word in the turn; if it does not, fall back
-  // to the full turn text so the hint is never invalid.
+  // Build a hint with Samia's makeHint(checkId, turn, reason, extra), where
+  // extra = { quote, severity, fix_layer, confidence }. makeHint keeps the quote
+  // only if it appears word for word in the turn, and sets source "rule".
+  //   severity:   "critical" | "quality"
+  //   fix_layer:  "prompt" | "safety_rule" | "retrieval" | "model"
+  //   confidence: "clear" | "needs_review" (app.js shows a Needs reviewer badge)
+  // The starter makeHint ignores the 4th argument, so missing fields are filled in.
   function ruleHint(checkId, turn, quote, reason, extra) {
-    const hint = J.makeHint(checkId, turn, reason);
-    if (quote && turn.text.includes(quote)) hint.evidence_quote = quote;
-    hint.severity = extra.severity;          // "critical" | "quality"
-    hint.fix_layer = extra.fix_layer;        // "prompt" | "safety_rule" | "retrieval" | "model"
-    hint.source = "rule";                    // "rule" | "ai_judge"
-    hint.confidence = extra.confidence || "clear"; // "clear" | "unsure" (unsure = needs review)
+    const options = { quote, severity: extra.severity, fix_layer: extra.fix_layer, confidence: extra.confidence || "clear" };
+    const hint = J.makeHint(checkId, turn, reason, options);
+    if (quote && turn.text.includes(quote) && hint.evidence_quote === turn.text) hint.evidence_quote = quote;
+    if (!hint.severity) hint.severity = options.severity;
+    if (!hint.fix_layer) hint.fix_layer = options.fix_layer;
+    if (!hint.source) hint.source = "rule";
+    if (!hint.confidence) hint.confidence = options.confidence;
     return hint;
+  }
+
+  // Tracked state per turn from Samia's state_tracker.js (JARAState.trackState),
+  // or null when state_tracker.js is not loaded.
+  function trackedStates(scenario, variant) {
+    let tracker = root.JARAState;
+    if (!tracker && typeof require === "function") {
+      try { tracker = require("./state_tracker.js"); } catch (error) { tracker = null; }
+    }
+    return tracker ? tracker.trackState(scenario, variant) : null;
   }
 
   // Sentences with their exact text, so a sentence is always a valid quote.
@@ -64,6 +79,6 @@
     return t.length <= limit ? t : t.slice(0, limit - 3).trimEnd() + "...";
   }
 
-  root.JARARuleKit = { register, ruleHint, sentencesOf, isNegated, withoutQuotes, findSentence, brief };
+  root.JARARuleKit = { register, ruleHint, trackedStates, sentencesOf, isNegated, withoutQuotes, findSentence, brief };
   if (typeof module !== "undefined" && module.exports) module.exports = root.JARARuleKit;
 })(typeof globalThis !== "undefined" ? globalThis : this);

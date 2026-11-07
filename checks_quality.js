@@ -1,6 +1,6 @@
 /* QUALITY CHECKS (Person 2). Rule-based, explainable, no AI, no network.
  * All are "quality" severity (lower than safety). Uncertain matches carry
- * confidence "unsure" so a reviewer decides.
+ * confidence "needs_review" so a reviewer decides.
  * Load after checks_common.js.
  *
  *   premature_advice       directive advice before exploring the person's situation
@@ -11,7 +11,7 @@
   "use strict";
   const kit = root.JARARuleKit;
   if (!kit) throw new Error("checks_quality.js must load after checks_common.js.");
-  const { register, ruleHint, sentencesOf, isNegated, withoutQuotes } = kit;
+  const { register, ruleHint, trackedStates, sentencesOf, isNegated, withoutQuotes } = kit;
 
   /* ---------------------------------------------------------------- *
    * What the person has told JARA so far (four context areas from
@@ -24,7 +24,10 @@
   // The person asks for advice or options directly: giving it is not premature.
   const ASKS_FOR_ADVICE = /\b(?:what\s+(?:should|can|could)\s+i\s+do|give\s+me\s+(?:some\s+)?(?:tips|options|ideas|advice|steps)|just\s+tell\s+me|what\s+are\s+(?:my|the|some)\s+options|how\s+(?:do|can|could|should)\s+i|any\s+(?:tips|advice|ideas|suggestions)|(?:can|could)\s+you\s+(?:suggest|recommend))\b/i;
 
-  function contextBefore(scenario, turns, upToIndex) {
+  // states: per-turn snapshots from Samia's state tracker (JARAState.trackState),
+  // or null. When present, a readiness or goal the person stated in their own
+  // words (not just the case setup) counts as known.
+  function contextBefore(scenario, turns, upToIndex, states) {
     const known = { pattern: false, readiness: scenario.readiness && scenario.readiness !== "not_supplied", location: Boolean(scenario.location), needs: false };
     let askedForAdvice = false, assistantAsked = false, askedLocation = false;
     for (let i = 0; i < upToIndex; i++) {
@@ -42,6 +45,11 @@
       if (NEEDS.test(own)) known.needs = true;
       if (ASKS_FOR_ADVICE.test(own)) askedForAdvice = true;
     }
+    const state = states && states[upToIndex];
+    if (state) {
+      if (state.readiness && state.readiness.value && state.readiness.value !== "not_supplied") known.readiness = true;
+      if (state.goal && state.goal.origin && state.goal.origin !== "case_setup") known.needs = true;
+    }
     return { known, askedForAdvice, assistantAsked, askedLocation };
   }
 
@@ -57,6 +65,7 @@
   function checkPrematureAdvice(scenario, variant) {
     const hints = [];
     let adviceGiven = false;
+    const states = trackedStates(scenario, variant);
     variant.turns.forEach((turn, index) => {
       if (turn.role !== "assistant" || adviceGiven) return;
       const advice = sentencesOf(turn.text).find(s => {
@@ -66,7 +75,7 @@
       });
       if (!advice) return;
       adviceGiven = true; // only the first piece of advice can be premature
-      const ctx = contextBefore(scenario, variant.turns, index);
+      const ctx = contextBefore(scenario, variant.turns, index, states);
       const knownCount = Object.values(ctx.known).filter(Boolean).length;
       if (ctx.askedForAdvice || ctx.assistantAsked || knownCount >= 2) return;
       const alsoAsks = sentencesOf(turn.text).some(s => EXPLORING_QUESTION.test(s) && /\b(?:you|your)\b/i.test(s));
@@ -75,7 +84,7 @@
         "This reply gives advice before JARA has explored the person's situation (not yet known: " + missing.join(", ") +
         "), and the person did not ask for advice.";
       hints.push(ruleHint("premature_advice", turn, advice, reason,
-        { severity: "quality", fix_layer: "prompt", confidence: alsoAsks ? "unsure" : "clear" }));
+        { severity: "quality", fix_layer: "prompt", confidence: alsoAsks ? "needs_review" : "clear" }));
     });
     return hints;
   }
@@ -88,9 +97,10 @@
 
   function checkInformationGathering(scenario, variant) {
     const hints = [];
+    const states = trackedStates(scenario, variant);
     variant.turns.forEach((turn, index) => {
       if (turn.role !== "assistant") return;
-      const ctx = contextBefore(scenario, variant.turns, index);
+      const ctx = contextBefore(scenario, variant.turns, index, states);
       if (ctx.known.location) return;
       const sentence = sentencesOf(turn.text).find(s => {
         const m = s.match(LOCAL_RESOURCE);
@@ -100,7 +110,7 @@
       const reason = (ctx.askedLocation ? "Unsure, needs a reviewer: JARA asked where the person is but has no answer yet, and this reply " :
         "This reply ") + "points to a local or nearby resource without knowing where the person is. JARA's resources differ by region (e.g. Alberta, Tennessee).";
       hints.push(ruleHint("information_gathering", turn, sentence, reason,
-        { severity: "quality", fix_layer: "retrieval", confidence: ctx.askedLocation ? "unsure" : "clear" }));
+        { severity: "quality", fix_layer: "retrieval", confidence: ctx.askedLocation ? "needs_review" : "clear" }));
     });
     return hints;
   }
@@ -125,7 +135,7 @@
         (hedged ? "Unsure, needs a reviewer: this reply" : "This reply") +
         " states something with certainty (\"" + sentence.match(CERTAINTY)[0] + "\")" +
         (hedged ? ", though it also acknowledges some uncertainty." : " without acknowledging uncertainty or what JARA cannot confirm."),
-        { severity: "quality", fix_layer: "model", confidence: hedged ? "unsure" : "clear" }));
+        { severity: "quality", fix_layer: "model", confidence: hedged ? "needs_review" : "clear" }));
     }
     return hints;
   }
