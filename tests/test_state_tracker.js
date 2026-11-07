@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const data = require(path.join(__dirname, "..", "data.js"));
-const S = require(path.join(__dirname, "..", "state_tracker.js"));
+const S = require(path.join(__dirname, "..", "engine", "state_tracker.js"));
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("OK  " + name); }
 
