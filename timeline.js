@@ -4,8 +4,8 @@
  * Colours after checks run:  green = no hint, amber = only "needs reviewer" hints,
  * red = at least one clear hint. Grey = person turn, or checks not run yet.
  *
- * Tracked state comes from Person 1's state tracker when it is loaded:
- *   JARAStateTracker.track(scenario, variant) -> [{ turn_id, goal, readiness, preferences: [], declined: [] }]
+ * Tracked state comes from Samia's state_tracker.js (window.JARAState) when it is loaded:
+ *   JARAState.trackState(scenario, variant) -> one snapshot per turn (goal, readiness, preferences, declined)
  * Without it, the panel falls back to the goal data and the case readiness.
  */
 (function (root) {
@@ -39,12 +39,18 @@
     });
   }
 
+  // Samia's tracker gives { value, ... } objects; older shapes give plain strings.
+  function valueOf(field) { return field && typeof field === "object" ? field.value : field; }
+  function itemName(entry) {
+    return entry && typeof entry === "object" ? (entry.item || entry.kind || entry.value || "") : String(entry);
+  }
+
   // State per turn, same length as variant.turns.
   function stateForVariant(scenario, variant) {
-    const tracker = root.JARAStateTracker;
+    const tracker = root.JARAState;
     let tracked = null;
-    if (tracker && typeof tracker.track === "function") {
-      try { tracked = tracker.track(scenario, variant); } catch (error) { tracked = null; }
+    if (tracker && typeof tracker.trackState === "function") {
+      try { tracked = tracker.trackState(scenario, variant); } catch (error) { tracked = null; }
     }
     const byTurn = new Map();
     if (Array.isArray(tracked)) for (const s of tracked) if (s && s.turn_id) byTurn.set(s.turn_id, s);
@@ -53,10 +59,10 @@
       const s = byTurn.get(turn.id) || {};
       return {
         turn_id: turn.id,
-        goal: s.goal || goals[i] || null,
-        readiness: s.readiness || scenario.readiness || null,
-        preferences: Array.isArray(s.preferences) ? s.preferences : [],
-        declined: Array.isArray(s.declined) ? s.declined : [],
+        goal: valueOf(s.goal) || goals[i] || null,
+        readiness: valueOf(s.readiness) || scenario.readiness || null,
+        preferences: Array.isArray(s.preferences) ? s.preferences.map(itemName).filter(Boolean) : [],
+        declined: Array.isArray(s.declined) ? s.declined.map(itemName).filter(Boolean) : [],
         from_tracker: byTurn.has(turn.id)
       };
     });

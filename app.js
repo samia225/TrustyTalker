@@ -51,8 +51,8 @@
   function isCritical(hint) { return String(hint.severity || "").toLowerCase() === "critical"; }
 
   // ---- Closest source passage -------------------------------------------
-  // Uses Person 2's JARASimilarity.closestPassage(text, sources) -> { source_id, passage, score }
-  // when it is loaded. Until then, a simple shared-word score stands in.
+  // Uses Fatima's tfidf.js (JARASimilarity.closestPassage(text, sources) -> { source_id, passage, score }
+  // when it is loaded). Until then, a simple shared-word score stands in.
   function words(text) { return new Set(String(text).toLowerCase().match(/[a-z0-9']+/g) || []); }
   function closestSource(text, sources) {
     if (!sources.length) return null;
@@ -425,7 +425,7 @@
   }
 
   // ---- Expert benchmark panel -------------------------------------------
-  // Uses JARABenchmark.run(data, checks) from benchmark.js (Samia), which returns
+  // Uses JARABenchmark.run(data, checks) from benchmark.js (Fatima), which returns
   // { agree, total, agreement_rate, rows }. Row field names are read flexibly.
   function field(row, names) {
     for (const name of names) if (row && row[name] !== undefined && row[name] !== null && row[name] !== "") return row[name];
