@@ -4,4 +4,10 @@ coverage/
 .env
 .env.*
 .DS_Store
-Thumbs.db
+Thumbs.dbCLAUDE.md
+
+# Local only
+CLAUDE.md
+PLAN.md
+TEAM_TASKS.md
+CLAUDE.local.md
