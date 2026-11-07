@@ -1,0 +1,69 @@
+JARA CHALLENGE AND STUDENT TASKS
+
+PROBLEM
+Someone can want information without wanting to quit. They can change their
+goal, ask for shorter wording, or decline a screening. A reply can sound helpful
+while ignoring that request. A source link can also be real within a fictional
+example without supporting a particular claim. The project makes a specific
+mismatch easy to inspect and explain.
+
+FIRST HOUR
+Minutes 0 to 15: run index.html, try CASE-04 and export one finding. Read both
+conversations and locate the quoted turn in the downloaded JSON.
+Minutes 15 to 30: read checkRepeatedReply and makeHint in student_checks.js.
+Find where the code selects assistant turns, compares text and returns a hint.
+Minutes 30 to 60: implement checkGoalAlignment. Begin with CASE-01. Its current
+goal is information; Example B directly pressures the person to quit. Example A
+includes "I will not ask you to quit" and should not be flagged as pressure.
+After writing the rule, set goal_alignment's implemented flag to true in checks.
+Refresh the page, select CASE-01, run checks and inspect your result.
+This time plan is a suggestion, not a required speed or assessment.
+
+CORE PROJECT
+1. Implement a simple goal-alignment check in student_checks.js.
+2. Explain each suggestion with an exact assistant quote and the real turn ID.
+3. Test both a mismatch and a similar sentence that should not be flagged.
+4. Add at least three new fictional cases in data.js. Use new unique IDs.
+5. Demonstrate a case, a response comparison, your finding and an exported JSON.
+6. Describe what your rule cannot detect and at least one false-positive risk.
+
+HOW TO WRITE THE FIRST RULE
+Use a for loop over variant.turns. Skip any turn whose role is not assistant.
+Read scenario.goal. Use a small, explainable check for direct pressure when the
+goal is information. Do not hardcode CASE-01 or a single turn ID.
+Use makeHint("goal_alignment", turn, "your explanation") to create a result.
+Return a list, even when it is empty. Preserve the user's ability to be unsure.
+A keyword-only rule will be incomplete; that limitation belongs in the submission.
+
+SECOND EXERCISE
+Implement checkSourceSupport and mark source_support implemented when ready.
+CASE-05 supplies a mock source with cost and appointment availability unknown.
+Example B has authored structured claims that the service is free and available
+today. Compare each turn.claims item with the source matching its source_id.
+The claims are supplied data; you do not need to build a natural-language claim
+extractor. Return an evidence-linked suggestion for a missing or conflicting fact.
+The exercise checks mock record consistency, not clinical or medical truth.
+
+OPTIONAL EXTENSIONS
+Improve how a person can compare requests, replies, source passages and findings.
+Add a focused check for a changed preference, quoted readiness or unverified
+saved-state claims. The current app has no independent application-state data.
+Add a manual review interface that keeps a person's judgement separate from
+automated suggestions. Never turn a hint into an automatic clinical approval.
+These are alternatives after the core path works, not a requirement to build all.
+
+MINIMUM DEMONSTRATION
+The page opens from the extracted folder without accounts or installations.
+The worked repetition check still works.
+Your goal rule flags an appropriate example and leaves an aligned example alone.
+At least three added fictional cases run without duplicate IDs or broken UI.
+Every exported hint has a real assistant turn ID, literal quote and explanation.
+Unfinished checks stay visibly unevaluated. Failed or uncertain outcomes remain
+in the handoff rather than being replaced with a claim of success.
+
+SCOPE
+No production credentials, clinical scoring, authentication, live service
+directory, AI model training or full JARA integration is required.
+Real participant data and clinical recommendations are outside this exercise.
+The small export format is a teaching contract for later review, not an existing
+production endpoint or a promise of direct integration.

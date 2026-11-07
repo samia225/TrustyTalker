@@ -1,0 +1,72 @@
+{
+  "package_version": "2026-11-04.1",
+  "files": [
+    {
+      "path": "index.html",
+      "bytes": 3009,
+      "sha256": "428545e53ccf1eff820e89059286eec0180ae58757d22105a6241336d8bc9a52"
+    },
+    {
+      "path": "styles.css",
+      "bytes": 5378,
+      "sha256": "715aacfc49d757eaf79026dad4faa103bad25aa56f137399aa6b9d206b0074c5"
+    },
+    {
+      "path": "app.js",
+      "bytes": 7029,
+      "sha256": "eb07cb5891699204019a47e4d3a16745eaafaf7521caf48db5bef9df6c27c8db"
+    },
+    {
+      "path": "student_checks.js",
+      "bytes": 3219,
+      "sha256": "8dcff796d4cd343a6869ec7db766d8f7c6a6a828ebb610a1d2e7fae2f6de23d0"
+    },
+    {
+      "path": "data.js",
+      "bytes": 14058,
+      "sha256": "8a94167cc700c8cf208a7ef55e7936a25d65e2f04ba98a7d92e8816b8fa3581b"
+    },
+    {
+      "path": "check_starter.js",
+      "bytes": 3566,
+      "sha256": "89a74b61f4625eb4e42cd17121cb881c279457111bd17dc58af30b4db5c25591"
+    },
+    {
+      "path": "package.json",
+      "bytes": 174,
+      "sha256": "d0678cd68f53f93a306c186fdb5c965216ecf6b44efbc60e9a2505d23d272e8b"
+    },
+    {
+      "path": "START_HERE.txt",
+      "bytes": 4481,
+      "sha256": "4955f4525fea2c969be27312600bfec602bc4e5d8229724237814b05cd2ad4a9"
+    },
+    {
+      "path": "TASKS.txt",
+      "bytes": 4142,
+      "sha256": "816cbd2bb3def8f326fe0bb4f3bed9afc955f8d7b336c77d0a448fd58bd21da3"
+    },
+    {
+      "path": "REFERENCE.txt",
+      "bytes": 2983,
+      "sha256": "9677370e25093353b792441bceb9114bd2b13fa6c717952e54913979af3db25d"
+    },
+    {
+      "path": "SUBMISSION.txt",
+      "bytes": 1123,
+      "sha256": "9ad283169de1b6b3035216cc6c5f43b563a4b605d030820c2494818f66741a1f"
+    },
+    {
+      "path": "reference/support_choices.json",
+      "bytes": 1116,
+      "sha256": "df714e13de164caa85bc3276792a0396657bf3b128c322362ea20039e5b978ec"
+    },
+    {
+      "path": "reference/finding_example.json",
+      "bytes": 988,
+      "sha256": "35ab915f0aaeadc509ab143cd2b583e36509b9c796cd625465a37073f9665d90"
+    }
+  ],
+  "contains_production_runtime": false,
+  "contains_real_participant_data": false
+}

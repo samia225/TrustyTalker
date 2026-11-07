@@ -1,0 +1,78 @@
+JARA STUDENT STARTER
+Conversation fit challenge
+Prepared November 4 2026
+
+YOUR PROJECT IN ONE SENTENCE
+Help spot when a support reply does not fit what the person actually asked for.
+
+START IN FIVE MINUTES
+1. Extract the ZIP completely. Do not run files inside the ZIP preview.
+2. Open the extracted JARA-student-starter folder.
+3. Double-click index.html. It opens in Chrome, Edge or another modern browser.
+4. The first example is CASE-04, about making a question shorter.
+5. Click Run checks. Example B should show one exact-repetition suggestion.
+6. Click Export findings. The downloaded JSON contains the case, turn and quote.
+That is the complete starter working. No terminal or account is needed.
+
+THEN START CODING
+Read TASKS.txt. Open student_checks.js using a text editor such as VS Code or
+Notepad through File > Open. Only index.html is opened by double-clicking;
+JavaScript files are source code to edit in the text editor.
+Start at checkGoalAlignment. It is deliberately unfinished.
+Save the file, return to the browser and refresh with Ctrl+Shift+R.
+
+WHAT IS ALREADY DONE
+The page shows fictional conversations, runs enabled checks, highlights the
+quoted turn and downloads findings. One exact-repetition check is implemented.
+
+WHAT IS YOUR WORK
+Add a small goal-alignment check and test it. Source support is a second exercise.
+You can then improve the comparison display or add another focused check.
+There is no need to build a chatbot, train a model or learn the full JARA stack.
+
+FILE MAP
+student_checks.js       EDIT FIRST. Working example and two TODO functions.
+data.js                 Fictional examples. Add new cases here later.
+app.js                  Display and download code. Read after your first rule.
+index.html              Page structure. Optional interface improvements.
+styles.css              Page appearance. Optional interface improvements.
+check_starter.js         Optional terminal checks if Node.js is already installed.
+package.json             Declares the optional Node file format. No dependencies.
+TASKS.txt                First-hour steps, project scope and success criteria.
+REFERENCE.txt            JARA context and the simple data/finding contract.
+SUBMISSION.txt           What to hand over.
+reference/               Small support-choice vocabulary and export example.
+MANIFEST.json            File inventory and hashes. Not application code.
+
+OPTIONAL TERMINAL CHECKS
+The browser works without Node.js. If Node.js is installed, open a terminal in
+this folder and run: node check_starter.js
+No npm install is needed. package.json only keeps the Node check self-contained.
+This checks the starter only. It does not certify your unfinished exercises.
+After writing the goal rule: node check_starter.js --exercise-goals
+After writing the source rule: node check_starter.js --exercise-sources
+Exercise commands intentionally fail until the corresponding rule is written.
+
+IF SOMETHING DOES NOT WORK
+Blank page: check that index.html, data.js, app.js, student_checks.js and styles.css
+are in the same extracted folder. Do not rename the files.
+Changes invisible: save the JavaScript file, then press Ctrl+Shift+R in the browser.
+After an edit, no page response: press F12, open Console, and read the first error
+and line number. A missing bracket or quote is a common beginner mistake.
+Check error on the page: the rule must return a list of correctly shaped hints.
+Compare your code with checkRepeatedReply and makeHint in student_checks.js.
+No suggestions: the starter only implements repetition. The other checks are
+intentionally unfinished. Zero suggestions does not mean the example is correct.
+No results after refresh: results are not saved automatically. Export them first.
+
+OPTIONAL LOCAL PREVIEW
+If your browser restricts scripts opened from local files, Python provides an
+alternative. This is optional and only applies if Python is already installed.
+Open a terminal inside the extracted JARA-student-starter folder and run:
+python -m http.server 8765 --bind 127.0.0.1
+Then open http://127.0.0.1:8765/ in the browser. Stop the preview with Ctrl+C.
+Use the student folder as the server folder, not a parent folder containing other
+work. No browser security setting needs to be changed.
+
+All conversations are fictional teaching material, not real JARA outputs or
+clinical advice. Use the supplied data and invented examples for this exercise.

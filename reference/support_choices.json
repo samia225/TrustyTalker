@@ -1,0 +1,22 @@
+{
+  "purpose": "Read-only vocabulary reference, not a production decision engine or clinical instrument.",
+  "source_file": "backend/src/jara/agents/onboarding_support.py",
+  "source_revision": "e48f27c0e8abb0df988ac795c4947b6325ec4423",
+  "source_sha256": "731161ca7def3341d81a00c282d1b1c085dd9b48ba96f12d427bef7480145060",
+  "goals": {
+    "information": "I want information only.",
+    "harm_reduction": "I want help with harm reduction.",
+    "cut_down": "I want to cut down on alcohol or other substance use.",
+    "stop": "I want to stop drinking or using.",
+    "find_treatment": "I want to find treatment.",
+    "recovery_support": "I want recovery support.",
+    "undecided": "I am not sure what I want to change."
+  },
+  "stated_readiness": {
+    "not_ready": "Readiness: I am not ready to make a change.",
+    "exploring": "Readiness: I am exploring my options.",
+    "ready_for_step": "Readiness: I am ready to try a small step.",
+    "making_changes": "Readiness: I am already making changes.",
+    "maintaining_changes": "Readiness: I am maintaining changes I have chosen."
+  }
+}

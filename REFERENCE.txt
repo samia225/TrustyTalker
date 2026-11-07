@@ -1,0 +1,57 @@
+JARA REFERENCE FOR THIS EXERCISE
+
+JARA is a research-stage substance-use support platform. It already has chosen
+goals, readiness choices, consented personalization, screening workflows,
+controlled scoring and evidence retrieval. The challenge is to help inspect
+whether a conversation fits a person's current request.
+
+HOW THIS STARTER RELATES TO JARA
+This is a small standalone teaching application. It is not the production JARA
+chatbot, API or clinical safety system. Its finding format is a teaching contract,
+not an existing production API. A future integration would need a reviewed adapter.
+
+reference/support_choices.json contains only the current goal/readiness wording
+extracted from JARA's onboarding constants. No production module is imported.
+Those choices provide terminology, not a diagnosis or a validated TTM assessment.
+
+THREE PLAIN-LANGUAGE QUESTIONS
+1. Does the reply follow the person's current goal?
+2. Does it respond to the latest preference, such as a request for shorter wording?
+3. Does the available source actually support the claim being made?
+
+EVIDENCE MEANS SOMETHING YOU CAN POINT TO
+Every automated hint contains a check ID, a real assistant turn ID, a reason and
+an exact quote from that turn. The app validates those structural requirements.
+A valid quote is necessary, but does not prove that the conclusion is correct.
+The production evidence contract also treats literal quotation as necessary and
+keeps claim meaning/applicability as a separate review question.
+
+SMALL DATA CONTRACT
+scenario.id: stable case ID.
+scenario.goal: current chosen goal, supplied as fixture setup.
+scenario.readiness: stated choice or not_supplied, not a clinical stage.
+scenario.sources: fictional records with id, passage and structured facts.
+scenario.variants: two authored possible conversations.
+variant.id: stable variant ID.
+variant.turns: messages with id, role and text.
+turn.claims: authored structured claims for the source exercise only.
+These claims are supplied examples, not the output of an implemented extractor.
+
+FINDING CONTRACT
+check_id: one of the IDs registered in student_checks.js.
+turn_id: the assistant turn containing the evidence.
+reason: a short explanation.
+evidence_quote: exact text present in that assistant turn.
+status: unreviewed_suggestion.
+reference/finding_example.json shows the export shape.
+
+INTERPRETATION
+A simple keyword rule can miss a mismatch or flag an innocent sentence. Report
+these limitations. The demo has no independent application-state observations.
+A reply saying something was saved is not proof of a saved record. An empty
+finding list does not establish safety, clinical approval or conversation quality.
+
+RIGHTS
+The starter code was written for this exercise. Applicable event and contribution
+terms govern use and distribution. No ownership transfer is established here.
+No licensed questionnaire text or clinical evidence corpus is supplied.

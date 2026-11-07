@@ -1,0 +1,32 @@
+{
+  "schema_version": "jara-junior-findings-1",
+  "dataset_version": "2026-11-04.1",
+  "generated_at": "2026-11-04T00:00:00Z",
+  "case_id": "CASE-04",
+  "provenance": "authored_fiction_not_observed_jara",
+  "implemented_checks": [
+    "repetition"
+  ],
+  "unfinished_checks": [
+    "goal_alignment",
+    "source_support"
+  ],
+  "review_status": "unreviewed_suggestions",
+  "clinical_validation": "not_established",
+  "application_state_observed": false,
+  "results": [
+    {
+      "variant_id": "CASE-04-B",
+      "hints": [
+        {
+          "check_id": "repetition",
+          "turn_id": "CASE-04-B-A2",
+          "reason": "This reply repeats an earlier reply word for word.",
+          "evidence_quote": "What support options could we discuss at my next visit?",
+          "status": "unreviewed_suggestion"
+        }
+      ]
+    }
+  ],
+  "example_note": "Illustrative export shape. The timestamp is a placeholder, not an actual execution receipt."
+}

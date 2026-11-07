@@ -1,0 +1,7 @@
+{
+  "name": "jara-student-starter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Offline teaching starter with no package dependencies"
+}

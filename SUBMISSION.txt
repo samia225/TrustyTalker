@@ -1,0 +1,24 @@
+JARA STUDENT SUBMISSION
+
+Include:
+1. The working folder or source ZIP with your changes.
+2. A short explanation of the mismatch your check addresses.
+3. The command or file that starts the project.
+4. Three or more added fictional cases and their IDs.
+5. Example exported finding JSON, including a mismatch and a non-mismatch.
+6. Actual check results, known failures and unfinished work.
+7. A short demo recording or screenshots, if available and permitted.
+8. Dependencies, applicable licences and any optional external service use.
+
+Answers:
+What did you change in student_checks.js?
+What request or preference makes the reply unsuitable?
+Which exact assistant words support your finding?
+Which similar sentence should your rule leave alone?
+When could your rule be wrong?
+Which parts are implemented and which remain TODO?
+What would be needed to integrate it into JARA after review?
+
+Do not include credentials, copied production data or real participant records.
+Automated hints remain unreviewed suggestions. Clinical validation and production
+acceptance are separate from this demonstration.

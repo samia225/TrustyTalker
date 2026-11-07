@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; connect-src 'none'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+  <title>JARA conversation lab</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="data.js" defer></script>
+  <script src="student_checks.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#comparison">Skip to conversation</a>
+  <header class="site-header">
+    <div>
+      <h1>JARA conversation lab</h1>
+      <p>Compare a person's request with the reply they receive.</p>
+    </div>
+    <a class="guide-link" href="START_HERE.txt" target="_blank" rel="noopener">Open the start guide</a>
+  </header>
+  <main>
+    <p class="provenance">Fictional teaching examples. These are not live JARA replies or clinical advice.</p>
+    <div class="workspace">
+      <aside class="context" aria-labelledby="case-heading">
+        <h2 id="case-heading">Choose an example</h2>
+        <label for="case-select">Scenario</label>
+        <select id="case-select"></select>
+        <p id="case-description"></p>
+        <dl id="case-facts"></dl>
+        <h3>Available source</h3>
+        <div id="source-context"></div>
+        <details class="coding-help">
+          <summary>Your first coding task</summary>
+          <p>Open <code>student_checks.js</code> in a text editor. Start with the working repetition example, then complete <code>checkGoalAlignment</code>.</p>
+          <p><a href="TASKS.txt" target="_blank" rel="noopener">Read the tasks and success criteria</a></p>
+        </details>
+      </aside>
+      <section class="comparison" id="comparison" aria-labelledby="comparison-heading">
+        <div class="comparison-heading">
+          <h2 id="comparison-heading">Two possible conversations</h2>
+          <p>Read both. Which reply follows the person's request?</p>
+        </div>
+        <div class="variants" id="variants"></div>
+        <section class="check-results" aria-labelledby="checks-heading">
+          <div class="check-toolbar">
+            <div><h2 id="checks-heading">Starter checks</h2><p id="coverage"></p></div>
+            <div class="actions">
+              <button id="run-checks" type="button">Run checks</button>
+              <button id="export-results" class="secondary" type="button" disabled>Export findings</button>
+            </div>
+          </div>
+          <p id="check-status" role="status" aria-live="polite">Choose an example and run the checks.</p>
+          <div id="findings"></div>
+        </section>
+      </section>
+    </div>
+    <footer>Local files only. There is no account, database or AI connection in this starter.</footer>
+  </main>
+  <noscript>This starter needs JavaScript enabled. Open index.html in a normal browser window.</noscript>
+</body>
+</html>
