@@ -216,3 +216,5 @@ noscript { display: block; padding: 24px; }
 
 /* ---- Rules vs AI judge ---- */
 .judge-compare:not(:empty) { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); overflow-x: auto; }
+
+.judge-note { color: var(--amber); }

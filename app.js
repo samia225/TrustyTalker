@@ -51,19 +51,21 @@
   function isCritical(hint) { return String(hint.severity || "").toLowerCase() === "critical"; }
 
   // ---- Closest source passage -------------------------------------------
-  // Uses Fatima's tfidf.js (JARASimilarity.closestPassage(text, sources) -> { source_id, passage, score }
-  // when it is loaded). Until then, a simple shared-word score stands in.
+  // Uses Fatima's similarity.js: JARASimilarity.closestSource(scenario, turn) ->
+  // { source_id, passage, score, cited } or null when nothing is close. A cited
+  // source always comes first. If similarity.js is missing, a shared-word score stands in.
   function words(text) { return new Set(String(text).toLowerCase().match(/[a-z0-9']+/g) || []); }
-  function closestSource(text, sources) {
+  function closestSource(scenario, turn) {
+    const sources = scenario.sources || [];
     if (!sources.length) return null;
     const sim = window.JARASimilarity;
-    if (sim && typeof sim.closestPassage === "function") {
+    if (sim && typeof sim.closestSource === "function") {
       try {
-        const found = sim.closestPassage(text, sources);
-        if (found && found.passage) return Object.assign({ method: "TF-IDF" }, found);
+        const found = sim.closestSource(scenario, turn);
+        return found && found.passage ? Object.assign({ method: found.cited ? "TF-IDF, cited by the reply" : "TF-IDF" }, found) : null;
       } catch (error) { /* fall back below */ }
     }
-    const a = words(text);
+    const a = words(turn.text);
     let best = null;
     for (const source of sources) {
       const b = words(source.passage);
@@ -129,7 +131,7 @@
           message.append(element("span", "Source cited: " + turn.claims.map(c => c.source_id).join(", "), "turn-id"));
         }
         if (turn.role === "assistant") {
-          const closest = closestSource(turn.text, scenario.sources);
+          const closest = closestSource(scenario, turn);
           if (closest) {
             const box = element("details", undefined, "closest-source");
             box.append(element("summary", "Closest source passage: " + closest.source_id),
@@ -213,7 +215,10 @@
       renderSummary(scenario, results);
       renderJudgeComparison(scenario, results);
       status.className = "";
-      status.textContent = count ? count + " suggestion" + (count === 1 ? "" : "s") + " to inspect. Unfinished checks remain unevaluated." : "No suggestions from the enabled checks. This is not a pass: read the examples and complete the unfinished checks.";
+      const anyUnfinished = api.checks.some(c => !c.implemented);
+      status.textContent = count
+        ? count + " suggestion" + (count === 1 ? "" : "s") + " to inspect." + (anyUnfinished ? " Unfinished checks remain unevaluated." : "")
+        : "No suggestions from the enabled checks. This is not a pass: read the examples" + (anyUnfinished ? " and complete the unfinished checks." : " yourself too.");
       exportButton.disabled = false;
     } catch (error) {
       status.className = "error";
@@ -311,11 +316,12 @@
   }
 
   // ---- Rules vs AI judge -------------------------------------------------
-  // Shown only when Person 2's judge_results.js is loaded. Accepted shapes for
-  // window.JARAJudgeResults: { results: [{ case_id, variant_id, hints: [...] }] },
+  // Shown only when Fatima's judge_results.js is loaded (written by judge/run_judge.js
+  // as window.JUDGE_RESULTS). Accepted shapes: { results: [{ case_id, variant_id, hints: [...] }] },
   // the same as a plain array, or a flat array of hints that each carry variant_id.
+  function judgeData() { return window.JUDGE_RESULTS || window.JARAJudgeResults || null; }
   function judgeHintsFor(variantId) {
-    const raw = window.JARAJudgeResults;
+    const raw = judgeData();
     if (!raw) return null;
     const list = Array.isArray(raw) ? raw : Array.isArray(raw.results) ? raw.results : [];
     const out = [];
@@ -332,9 +338,11 @@
   function renderJudgeComparison(scenario, results) {
     const box = document.getElementById("judge-compare");
     box.replaceChildren();
-    if (!window.JARAJudgeResults) return;
+    const raw = judgeData();
+    if (!raw) return;
     box.append(element("h2", "Rules vs AI judge"),
       element("p", "Each assistant turn, with what the rule checks and the AI judge flagged.", "muted"));
+    if (raw.status && raw.status !== "judge_run") box.append(element("p", "Test data only: " + (raw.note || "not a real judge run."), "muted judge-note"));
     const table = element("table", undefined, "grid-table");
     const head = element("tr");
     for (const h of ["Turn", "Rule checks", "AI judge", "Agree?"]) head.append(element("th", h));
