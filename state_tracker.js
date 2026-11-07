@@ -48,6 +48,10 @@
   const READINESS_PHRASES = [
     ["not_ready", /\b(I am|I'm) not ready\b/i],
     ["exploring", /\b(I am|I'm) (just |only )?(exploring|looking at) (my )?options\b/i],
+    // Undecided about changing. "undecided" is a GOAL id in support_choices.json, not a
+    // readiness value; "exploring" is the closest readiness ("not_ready" would claim more
+    // than the person said). Listed before "unsure" so these specific phrases win.
+    ["exploring", /\bI (have not|haven't|havent|have not yet|haven't yet) decided\b|\bI( am|'m) (still )?not sure (if |whether |that )?I want to (change|cut (down|back)|quit|stop)\b|\bI (do not|don't|dont) know (if|whether) I want to (change|cut (down|back)|quit|stop)\b/i],
     ["ready_for_step", /\b(I am|I'm) ready to (try|take) (a |one )?(small )?step\b/i],
     ["making_changes", /\b(I am|I'm) already (making changes|cutting (down|back))\b/i],
     ["maintaining_changes", /\b(I am|I'm) (maintaining|keeping up) (the )?changes\b/i],
