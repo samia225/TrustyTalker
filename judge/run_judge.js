@@ -49,7 +49,7 @@ function loadIfExists(file) {
 
 function loadEverything() {
   const data = require(path.join(ROOT, "data.js"));
-  for (const extra of ["cases_extra.js", "cases_p2.js"]) loadIfExists(extra); // they append to data.cases
+  // All cases live in data.js (Person 4 is the only one who edits it).
   loadIfExists("state_tracker.js");
   const checks = require(path.join(ROOT, "student_checks.js"));
   for (const file of ["checks_common.js", "checks_sources.js", "checks_safety.js", "checks_quality.js"]) loadIfExists(file);

@@ -155,13 +155,16 @@ test("similarity: closest source picks the relevant passage", () => {
   assert.equal(S.closestSource({ sources: [] }, "anything"), null);
 });
 
-/* ---------------- cases_p2.js: well formed, hints valid ---------------- */
-test("cases_p2.js: unique case and turn IDs, valid shape, every hint valid", () => {
-  const p2 = require("./cases_p2.js");
+/* ---------------- handoff cases for Person 4: well formed, hints valid ---------------- */
+// Person 4 is the only one who edits data.js, so these cases are handed over in
+// handoff/p2_cases_for_data_js.json. This checks they will not clash once pasted in.
+test("handoff cases: unique case and turn IDs (also against data.js), valid shape, every hint valid", () => {
+  const p2 = require("./handoff/p2_cases_for_data_js.json");
   assert.ok(p2.length >= 10);
-  const ids = data.cases.map(c => c.id);
+  const ids = data.cases.map(c => c.id).concat(p2.map(c => c.id));
   assert.equal(new Set(ids).size, ids.length, "case IDs must be unique");
   const turnIds = [];
+  for (const c of data.cases) for (const v of c.variants) for (const x of v.turns) turnIds.push(x.id);
   for (const c of p2) {
     assert.equal(c.origin, "ai_drafted");
     assert.ok(c.goal && c.readiness && Array.isArray(c.sources) && c.variants.length === 2);
@@ -185,7 +188,7 @@ test("Existing data.js cases: Person 2 checks only flag the known bad examples",
   const mine = new Set(["source_support", "crisis_response", "unsafe_advice", "over_refusal", "respectful_language",
     "scope_transparency", "sycophancy", "premature_advice", "information_gathering", "overconfidence"]);
   const found = [];
-  for (const c of data.cases.filter(c => !c.id.startsWith("CASE-P2"))) for (const v of c.variants) for (const h of J.runChecks(c, v)) {
+  for (const c of data.cases) for (const v of c.variants) for (const h of J.runChecks(c, v)) {
     checkShapeIfMine(h, v);
     if (mine.has(h.check_id)) found.push(h.check_id + "@" + h.turn_id);
   }
