@@ -64,6 +64,9 @@
       if (SAFETY_RESPONSE.test(turn.text)) { pending = []; continue; }
 
       const direct = pending.find(p => p.direct);
+      // After a single indirect sign, an open follow-up question is a reasonable
+      // way to check in. Keep watching: a second sign makes the next miss clear.
+      if (!direct && indirectTurns < 2 && turn.text.includes("?")) continue;
       const latest = direct || pending[pending.length - 1];
       const said = "The person said \"" + latest.words + "\" (" + latest.turn.id + ")";
       let reason, confidence;
