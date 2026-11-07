@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="styles.css">
   <script src="data.js" defer></script>
   <script src="student_checks.js" defer></script>
+  <script src="benchmark.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -21,6 +22,22 @@
   </header>
   <main>
     <p class="provenance">Fictional teaching examples. These are not live JARA replies or clinical advice.</p>
+    <section class="overview" aria-labelledby="overview-heading">
+      <h2 id="overview-heading" class="visually-hidden">Overview</h2>
+      <div class="overview-grid">
+        <div id="benchmark-panel" class="benchmark-panel" aria-live="polite"></div>
+        <div class="all-cases-panel">
+          <div class="all-cases-head">
+            <div>
+              <h2>All cases</h2>
+              <p class="muted">Run every case at once and compare with the expert labels.</p>
+            </div>
+            <button id="run-all" type="button">Run all cases</button>
+          </div>
+          <div id="all-cases"></div>
+        </div>
+      </div>
+    </section>
     <div class="workspace">
       <aside class="context" aria-labelledby="case-heading">
         <h2 id="case-heading">Choose an example</h2>
