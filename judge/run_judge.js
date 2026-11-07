@@ -50,11 +50,11 @@ function loadIfExists(file) {
 function loadEverything() {
   const data = require(path.join(ROOT, "data.js"));
   // All cases live in data.js (Person 4 is the only one who edits it).
-  loadIfExists("state_tracker.js");
+  loadIfExists("engine/state_tracker.js");
   const checks = require(path.join(ROOT, "student_checks.js"));
-  for (const file of ["checks_common.js", "checks_sources.js", "checks_safety.js", "checks_quality.js"]) loadIfExists(file);
-  const similarity = require(path.join(ROOT, "similarity.js"));
-  const validate = loadIfExists("validate.js"); // Person 1's validateHint, when it exists
+  for (const file of ["checks/checks_common.js", "checks/checks_sources.js", "checks/checks_safety.js", "checks/checks_quality.js"]) loadIfExists(file);
+  const similarity = require(path.join(ROOT, "engine", "similarity.js"));
+  const validate = loadIfExists("engine/validate.js"); // Person 1's validateHint, when it exists
   return { data, checks, similarity, validate };
 }
 

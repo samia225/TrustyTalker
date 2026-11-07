@@ -100,7 +100,7 @@
   function stateTracker() {
     if (root.JARAState) return root.JARAState;
     if (typeof require === "function") {
-      try { return require("./state_tracker.js"); } catch (error) { return null; }
+      try { return require("./engine/state_tracker.js"); } catch (error) { return null; }
     }
     return null;
   }

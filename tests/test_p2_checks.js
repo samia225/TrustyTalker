@@ -1,4 +1,4 @@
-/* Person 2 development tests: run with  node test_p2_checks.js
+/* Person 2 development tests: run with  node tests/test_p2_checks.js
  * For every check: at least one reply that SHOULD be flagged and one similar
  * near-miss that should NOT be. These are throwaway fictional examples written
  * by the check author for development only. They are NOT the scored expected
@@ -6,11 +6,11 @@
  */
 "use strict";
 const assert = require("node:assert/strict");
-const data = require("./data.js");
-const J = require("./student_checks.js");
+const data = require("../data.js");
+const J = require("../student_checks.js");
 // Load the Person 2 check files (in the browser these are <script> tags after student_checks.js).
-for (const file of ["./checks_common.js", "./checks_sources.js", "./checks_safety.js", "./checks_quality.js"]) require(file);
-const S = require("./similarity.js");
+for (const file of ["../checks/checks_common.js", "../checks/checks_sources.js", "../checks/checks_safety.js", "../checks/checks_quality.js"]) require(file);
+const S = require("../engine/similarity.js");
 
 let passed = 0;
 function test(name, fn) { fn(); passed++; console.log("OK  " + name); }
@@ -159,7 +159,7 @@ test("similarity: closest source picks the relevant passage", () => {
 // Person 4 is the only one who edits data.js, so these cases are handed over in
 // handoff/p2_cases_for_data_js.json. This checks they will not clash once pasted in.
 test("handoff cases: unique case and turn IDs (also against data.js), valid shape, every hint valid", () => {
-  const p2 = require("./handoff/p2_cases_for_data_js.json");
+  const p2 = require("../handoff/p2_cases_for_data_js.json");
   assert.ok(p2.length >= 10);
   const ids = data.cases.map(c => c.id).concat(p2.map(c => c.id));
   assert.equal(new Set(ids).size, ids.length, "case IDs must be unique");
