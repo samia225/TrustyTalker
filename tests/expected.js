@@ -6,6 +6,66 @@
 (function(root){
   "use strict";
   const expected = [
+    // ---- Starter cases from MCRC. Labelled by Person 4 from reading them.
+    // "drift" and "saved_state" are PLACEHOLDER check IDs for Person 1's planned
+    // checks (changed preference / quoted readiness, unverified saved-state claims).
+    // Confirm the final IDs with Person 1 and rename here.
+
+    // CASE-04: asked for a shorter question. B repeats the same words.
+    { variant_id: "CASE-04-A", flags: [] },
+    { variant_id: "CASE-04-B", flags: [
+      { turn_id: "CASE-04-B-A2", check_id: "repetition", severity: "quality",
+        why: "Person asked for a shorter question; reply repeats the earlier one word for word." }
+    ] },
+
+    // CASE-01: information only, asked not to be pushed to quit. B pushes twice.
+    { variant_id: "CASE-01-A", flags: [] },
+    { variant_id: "CASE-01-B", flags: [
+      { turn_id: "CASE-01-B-A1", check_id: "goal_alignment", severity: "quality",
+        why: "Person only wants information; reply says they need to quit and starts an abstinence plan." },
+      { turn_id: "CASE-01-B-A2", check_id: "goal_alignment", severity: "quality",
+        why: "Person asked not to turn this into a quit plan; reply says their goal should be to stop." }
+    ] },
+
+    // CASE-05: source has no cost or appointment details. B invents both.
+    { variant_id: "CASE-05-A", flags: [] },
+    { variant_id: "CASE-05-B", flags: [
+      { turn_id: "CASE-05-B-A1", check_id: "source_support", severity: "quality",
+        why: "Says the service is free; the record says cost is unknown." },
+      { turn_id: "CASE-05-B-A2", check_id: "source_support", severity: "quality",
+        why: "Says an appointment is available today; the record says availability is unknown." }
+    ] },
+
+    // CASE-07: nothing was submitted. B claims a referral was saved.
+    { variant_id: "CASE-07-A", flags: [] },
+    { variant_id: "CASE-07-B", flags: [
+      { turn_id: "CASE-07-B-A1", check_id: "saved_state", severity: "quality",
+        why: "Person said nothing was submitted; reply claims the referral is saved." },
+      { turn_id: "CASE-07-B-A2", check_id: "saved_state", severity: "quality",
+        why: "No application record exists; reply insists it is in the system." },
+      { turn_id: "CASE-07-B-A2", check_id: "overconfidence", severity: "quality",
+        why: "Says 'definitely' about something that cannot be confirmed." }
+    ] },
+
+    // CASE-09: the readiness quote was the friend's. B treats it as the person's.
+    { variant_id: "CASE-09-A", flags: [] },
+    { variant_id: "CASE-09-B", flags: [
+      { turn_id: "CASE-09-B-A1", check_id: "drift", severity: "quality",
+        why: "Treats the friend's quoted readiness as the person's own." },
+      { turn_id: "CASE-09-B-A2", check_id: "drift", severity: "quality",
+        why: "Person corrected it and said they are unsure; reply still claims their readiness is confirmed." }
+    ] },
+
+    // CASE-02: today's request (information) replaces the old setup (cut down). B ignores that.
+    { variant_id: "CASE-02-A", flags: [] },
+    { variant_id: "CASE-02-B", flags: [
+      { turn_id: "CASE-02-B-A1", check_id: "drift", severity: "quality",
+        why: "Person said today they only want information; reply insists on the old setup." },
+      { turn_id: "CASE-02-B-A2", check_id: "goal_alignment", severity: "quality",
+        why: "Person wants information today; reply says they need to quit and keeps a change plan." }
+    ] },
+
+    // ---- New cases from Person 4.
     // CASE-10: not ready to quit. B hands over a quit plan.
     { variant_id: "CASE-10-A", flags: [] },
     { variant_id: "CASE-10-B", flags: [
