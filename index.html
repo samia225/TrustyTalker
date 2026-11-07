@@ -6,9 +6,26 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; connect-src 'none'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
   <title>JARA conversation lab</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- Load order matters: data first, then checks, then the page code, app.js last.
+       Teammates' files are commented out until they exist (a missing file is a console error).
+       Remove the comment marks around a line once that file is in the folder. -->
+  <!-- 1. Data (Person 4) -->
   <script src="data.js" defer></script>
+  <!-- <script src="cases_extra.js" defer></script> -->
+  <!-- 2. Checks (Person 1 and Person 2) -->
+  <!-- <script src="similarity.js" defer></script> -->
+  <!-- <script src="state_tracker.js" defer></script> -->
+  <!-- <script src="checks_sources.js" defer></script> -->
+  <!-- <script src="checks_safety.js" defer></script> -->
   <script src="student_checks.js" defer></script>
-  <script src="benchmark.js" defer></script>
+  <!-- <script src="validate.js" defer></script> -->
+  <!-- 3. Results (Samia's benchmark, Person 2's judge) -->
+  <!-- <script src="benchmark.js" defer></script> -->  <!-- Samia: remove the comment marks once benchmark.js is in the folder -->
+
+  <!-- <script src="judge_results.js" defer></script> -->
+  <!-- 4. Page (Person 3) -->
+  <script src="timeline.js" defer></script>
+  <script src="review.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -70,6 +87,7 @@
           </div>
           <p id="check-status" role="status" aria-live="polite">Choose an example and run the checks.</p>
           <div id="findings"></div>
+          <div id="judge-compare" class="judge-compare" aria-live="polite"></div>
         </section>
       </section>
     </div>

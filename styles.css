@@ -171,3 +171,48 @@ noscript { display: block; padding: 24px; }
 .review-evidence { font: inherit; font-size: .88rem; width: 100%; max-width: 72ch; min-height: 38px; padding: 6px 10px; border: 1px solid #89948b; border-radius: 8px; background: var(--surface); color: var(--ink); }
 .regression-button { justify-self: start; min-height: 36px; padding: 6px 14px; font-size: .86rem; }
 .regression-button[hidden] { display: none; }
+
+/* ---- Timeline + tracked state (timeline.js) ---- */
+:root { --green: #1f7a4d; --grey-stop: #b9c0ba; }
+.timeline { margin: -4px 0 18px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.timeline-strip { list-style: none; display: flex; flex-wrap: wrap; align-items: start; gap: 6px; margin: 0; padding: 0; }
+.timeline-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.timeline-stop { min-height: 32px; min-width: 32px; padding: 0; border-radius: 999px; font-size: .8rem; color: white; border: 2px solid transparent; }
+.timeline-stop[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
+.stop-user { background: var(--grey-stop); color: var(--ink); }
+.stop-pending { background: var(--surface); color: var(--muted); border-color: var(--grey-stop); border-style: dashed; }
+.stop-ok { background: var(--green); }
+.stop-review { background: #d99a1c; color: #1d1400; }
+.stop-flag { background: var(--red); }
+.timeline-stop:hover { filter: brightness(.92); }
+.timeline-stop.stop-user:hover, .timeline-stop.stop-pending:hover { background: #eeeee7; }
+.off-track-marker { font-size: .7rem; font-weight: 700; color: var(--red); white-space: nowrap; }
+.off-track-inline { display: inline-block; margin-bottom: 6px; padding: 1px 8px; border-radius: 999px; background: white; border: 1px solid var(--red); }
+.timeline-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 10px 0 0; font-size: .74rem; color: var(--muted); }
+.legend-key { display: inline-flex; align-items: center; gap: 5px; }
+.legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 999px; }
+.state-panel { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.state-heading { margin: 0 0 4px; font-size: .82rem; }
+.state-list { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; margin: 0; }
+.state-list dt { margin-top: 4px; font-size: .72rem; }
+.state-list dd { font-size: .84rem; }
+.state-note { display: block; margin-top: 6px; color: var(--muted); font-size: .74rem; }
+
+/* ---- Closest source passage ---- */
+.closest-source { margin-top: 8px; font-size: .84rem; border-left: 3px solid var(--teal); padding-left: 10px; }
+.closest-source summary { font-weight: 600; color: var(--teal); font-size: .8rem; }
+.closest-source p { margin: 6px 0 2px; color: var(--ink); font-size: .86rem; }
+
+/* ---- Severity + "not evaluated" ---- */
+.badge-severity { color: var(--muted); background: #eeeee7; }
+.severity-critical { color: white; background: var(--red); border-color: var(--red); }
+.finding-critical { background: var(--red-wash); }
+.summary-critical { color: white; background: var(--red); border-color: var(--red); }
+.summary-not-evaluated { color: var(--muted); border-style: dashed; font-weight: 600; }
+
+/* ---- Modify review decision ---- */
+.review-modified[aria-pressed="true"] { background: #5b3a9a; border-color: #5b3a9a; color: white; }
+.review[data-decision="modified"] .review-note { color: var(--ink); font-weight: 600; }
+
+/* ---- Rules vs AI judge ---- */
+.judge-compare:not(:empty) { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); overflow-x: auto; }

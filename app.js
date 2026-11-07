@@ -1,16 +1,17 @@
-/* Display and export plumbing. Most student work belongs in student_checks.js. */
+/* Display and export plumbing (Person 3). Checks live in student_checks.js and the
+ * other teammates' files; the timeline is in timeline.js and the reviewer panel in review.js. */
 (function () {
   "use strict";
   const data = window.JARAData;
   const api = window.JARAChecks;
+  const timeline = window.JARATimeline;
+  const review = window.JARAReview;
   const select = document.getElementById("case-select");
   const runButton = document.getElementById("run-checks");
   const exportButton = document.getElementById("export-results");
   const status = document.getElementById("check-status");
   const summaryBar = document.getElementById("summary-bar");
   let report = null;
-  // Reviewer decisions are kept apart from the automated hints. Key: variant|turn|check|index.
-  let reviews = new Map();
 
   function element(tag, text, className) {
     const node = document.createElement(tag);
@@ -40,26 +41,38 @@
     return badge;
   }
 
-  // ---- Goal timeline -----------------------------------------------------
-  // Preferred source: JARAChecks.goalTimeline(scenario, variant) from student_checks.js,
-  // returning either { turnId: goal } or [{ turn_id, goal }]. Fallbacks: turn.goal in
-  // data.js, then the case-level scenario.goal.
-  function goalsForVariant(scenario, variant) {
-    let fromApi = null;
-    if (typeof api.goalTimeline === "function") {
-      try { fromApi = api.goalTimeline(scenario, variant); } catch (error) { fromApi = null; }
+  // ---- Severity ----------------------------------------------------------
+  // Agreed hint field: hint.severity ("critical" first). Hints without one sort last.
+  const SEVERITY_ORDER = ["critical", "high", "warning", "medium", "quality", "low"];
+  function severityRank(hint) {
+    const i = SEVERITY_ORDER.indexOf(String(hint.severity || "").toLowerCase());
+    return i < 0 ? SEVERITY_ORDER.length : i;
+  }
+  function isCritical(hint) { return String(hint.severity || "").toLowerCase() === "critical"; }
+
+  // ---- Closest source passage -------------------------------------------
+  // Uses Person 2's JARASimilarity.closestPassage(text, sources) -> { source_id, passage, score }
+  // when it is loaded. Until then, a simple shared-word score stands in.
+  function words(text) { return new Set(String(text).toLowerCase().match(/[a-z0-9']+/g) || []); }
+  function closestSource(text, sources) {
+    if (!sources.length) return null;
+    const sim = window.JARASimilarity;
+    if (sim && typeof sim.closestPassage === "function") {
+      try {
+        const found = sim.closestPassage(text, sources);
+        if (found && found.passage) return Object.assign({ method: "TF-IDF" }, found);
+      } catch (error) { /* fall back below */ }
     }
-    const lookup = new Map();
-    if (Array.isArray(fromApi)) for (const item of fromApi) { if (item && item.turn_id) lookup.set(item.turn_id, item.goal); }
-    else if (fromApi && typeof fromApi === "object") for (const [id, goal] of Object.entries(fromApi)) lookup.set(id, goal);
-    let current = scenario.goal;
-    return variant.turns.map(turn => {
-      let value = lookup.get(turn.id);
-      if (value && typeof value === "object") value = value.value || value.goal || null;
-      if (value) current = value;
-      else if (turn.goal) current = turn.goal;
-      return current;
-    });
+    const a = words(text);
+    let best = null;
+    for (const source of sources) {
+      const b = words(source.passage);
+      let shared = 0;
+      for (const w of a) if (b.has(w)) shared += 1;
+      const score = shared / Math.max(1, new Set([...a, ...b]).size);
+      if (!best || score > best.score) best = { source_id: source.id, passage: source.passage, score, method: "word overlap" };
+    }
+    return best;
   }
 
   function clearSummary() {
@@ -70,12 +83,13 @@
   function showCase() {
     const scenario = selectedCase();
     report = null;
-    reviews = new Map();
+    review.reset();
     exportButton.disabled = true;
     status.className = "";
     status.textContent = "Run the checks to inspect this example. The unfinished checks are not evaluated.";
     clearSummary();
     document.getElementById("findings").replaceChildren();
+    document.getElementById("judge-compare").replaceChildren();
     document.getElementById("case-description").textContent = scenario.description;
     const facts = document.getElementById("case-facts");
     facts.replaceChildren();
@@ -95,8 +109,8 @@
     for (const variant of scenario.variants) {
       const section = element("section", undefined, "variant");
       section.setAttribute("aria-label", variant.label);
-      section.append(element("h3", variant.label));
-      const goals = goalsForVariant(scenario, variant);
+      section.append(element("h3", variant.label), timeline.render(scenario, variant));
+      const goals = timeline.goalsForVariant(scenario, variant);
       variant.turns.forEach((turn, index) => {
         const message = element("div", undefined, "turn " + turn.role);
         message.dataset.turnId = turn.id;
@@ -113,6 +127,16 @@
         message.append(header, element("p", turn.text), element("span", turn.id, "turn-id"));
         if ((turn.claims || []).length) {
           message.append(element("span", "Source cited: " + turn.claims.map(c => c.source_id).join(", "), "turn-id"));
+        }
+        if (turn.role === "assistant") {
+          const closest = closestSource(turn.text, scenario.sources);
+          if (closest) {
+            const box = element("details", undefined, "closest-source");
+            box.append(element("summary", "Closest source passage: " + closest.source_id),
+              element("p", closest.passage),
+              element("small", "Matched by " + closest.method + " (score " + Number(closest.score).toFixed(2) + ")", "muted"));
+            message.append(box);
+          }
         }
         section.append(message);
       });
@@ -140,6 +164,8 @@
     clearSummary();
     document.querySelectorAll(".turn.flagged").forEach(node => node.classList.remove("flagged", "flagged-review"));
     clearQuoteMarks();
+    timeline.reset();
+    document.getElementById("judge-compare").replaceChildren();
     report = null;
     exportButton.disabled = true;
     try {
@@ -156,29 +182,36 @@
         review_status: "unreviewed_suggestions", clinical_validation: "not_established",
         application_state_observed: false, results
       };
-      let count = 0;
-      for (const result of results) {
-        result.hints.forEach((hint, index) => {
-          count += 1;
-          const level = confidenceOf(hint);
-          const key = [result.variant_id, hint.turn_id, hint.check_id, index].join("|");
-          const row = element("article", undefined, "finding finding-" + level);
-          const heading = element("h3", result.variant_id + " / " + pretty(hint.check_id) + " ");
-          heading.append(makeBadge(level));
-          row.append(heading, element("p", hint.reason), element("blockquote", hint.evidence_quote),
-            element("small", hint.turn_id + " | Automated suggestion, not a reviewed finding"),
-            reviewControls(key, result.variant_id, hint));
-          findings.append(row);
-          const message = Array.from(document.querySelectorAll("[data-turn-id]")).find(node => node.dataset.turnId === hint.turn_id);
-          if (message) {
-            // A clear hint wins over an unsure one on the same turn.
-            if (level === "clear") { message.classList.add("flagged"); message.classList.remove("flagged-review"); }
-            else if (!message.classList.contains("flagged")) message.classList.add("flagged", "flagged-review");
-          }
-        });
+      // Keep each hint's original index (the review key uses it), then sort critical first.
+      const ordered = [];
+      for (const result of results) result.hints.forEach((hint, index) => ordered.push({ variantId: result.variant_id, hint, index }));
+      ordered.sort((a, b) => severityRank(a.hint) - severityRank(b.hint));
+      const count = ordered.length;
+      for (const { variantId, hint, index } of ordered) {
+        const level = confidenceOf(hint);
+        const key = review.keyFor(variantId, hint, index);
+        const row = element("article", undefined, "finding finding-" + level + (isCritical(hint) ? " finding-critical" : ""));
+        const heading = element("h3", variantId + " / " + pretty(hint.check_id) + " ");
+        if (hint.severity) heading.append(element("span", pretty(hint.severity), "badge badge-severity severity-" + String(hint.severity).toLowerCase()));
+        heading.append(makeBadge(level));
+        row.append(heading, element("p", hint.reason), element("blockquote", hint.evidence_quote),
+          element("small", hint.turn_id + " | Automated suggestion, not a reviewed finding"),
+          review.controls(key, variantId, hint, k => downloadRegression(k, variantId, hint)));
+        findings.append(row);
+        const message = turnNode(hint.turn_id);
+        if (message) {
+          // A clear hint wins over an unsure one on the same turn.
+          if (level === "clear") { message.classList.add("flagged"); message.classList.remove("flagged-review"); }
+          else if (!message.classList.contains("flagged")) message.classList.add("flagged", "flagged-review");
+        }
       }
       markQuotes(results);
+      for (const variant of scenario.variants) {
+        const result = results.find(r => r.variant_id === variant.id);
+        timeline.paint(variant, result ? result.hints : [], confidenceOf);
+      }
       renderSummary(scenario, results);
+      renderJudgeComparison(scenario, results);
       status.className = "";
       status.textContent = count ? count + " suggestion" + (count === 1 ? "" : "s") + " to inspect. Unfinished checks remain unevaluated." : "No suggestions from the enabled checks. This is not a pass: read the examples and complete the unfinished checks.";
       exportButton.disabled = false;
@@ -192,10 +225,10 @@
   // Wraps each hint's evidence_quote in <mark> inside its turn, so the exact
   // problem words stand out. Built with text nodes only (no innerHTML).
   function turnNode(turnId) {
-    return Array.from(document.querySelectorAll("#variants [data-turn-id]")).find(node => node.dataset.turnId === turnId);
+    return Array.from(document.querySelectorAll("#variants .turn[data-turn-id]")).find(node => node.dataset.turnId === turnId);
   }
   function clearQuoteMarks() {
-    for (const node of document.querySelectorAll("#variants [data-turn-id]")) {
+    for (const node of document.querySelectorAll("#variants .turn[data-turn-id]")) {
       const p = node.querySelector("p");
       if (p && node.dataset.text !== undefined) p.textContent = node.dataset.text;
     }
@@ -245,115 +278,87 @@
   // Counts assistant turns: flagged (at least one Clear hint), unsure (only
   // Needs-reviewer hints) and clean (no hint from the enabled checks).
   function renderSummary(scenario, results) {
-    let flagged = 0, unsure = 0, clean = 0;
+    let critical = 0, flagged = 0, unsure = 0, clean = 0;
     for (const variant of scenario.variants) {
       const result = results.find(r => r.variant_id === variant.id);
       const hints = result ? result.hints : [];
       for (const turn of variant.turns) {
         if (turn.role !== "assistant") continue;
-        const levels = hints.filter(h => h.turn_id === turn.id).map(confidenceOf);
+        const turnHints = hints.filter(h => h.turn_id === turn.id);
+        const levels = turnHints.map(confidenceOf);
+        if (turnHints.some(isCritical)) critical += 1;
         if (levels.includes("clear")) flagged += 1;
         else if (levels.length) unsure += 1;
         else clean += 1;
       }
     }
-    summaryBar.replaceChildren(
+    const items = [];
+    if (critical) items.push(element("span", critical + " critical", "summary-item summary-critical"));
+    items.push(
       element("span", flagged + " flagged", "summary-item summary-flagged"),
       element("span", unsure + " unsure", "summary-item summary-unsure"),
       element("span", clean + " clean", "summary-item summary-clean"));
+    // Unfinished checks are "not evaluated", never counted as clean.
+    const unfinished = api.checks.filter(c => !c.implemented);
+    if (unfinished.length) {
+      const item = element("span", "Not evaluated: " + unfinished.map(c => c.label || pretty(c.id)).join(", "), "summary-item summary-not-evaluated");
+      item.title = "These checks are not finished, so they did not run. Their problems would not show up here.";
+      items.push(item);
+    }
+    summaryBar.replaceChildren(...items);
     summaryBar.title = "Counts assistant replies in both examples. Clean means no enabled check raised a suggestion. It is not a pass.";
     summaryBar.hidden = false;
   }
 
-  // ---- Human review: confirmed / rejected / unsure + reason + evidence ----
-  // Exact values requested by MCRC (Vatsal). Stored apart from the automated hint.
-  const DECISIONS = [["confirmed", "Confirm"], ["rejected", "Reject"], ["unsure", "Unsure"]];
-  function reviewControls(key, variantId, hint) {
-    const box = element("div", undefined, "review");
-    const group = element("div", undefined, "review-buttons");
-    group.setAttribute("role", "group");
-    group.setAttribute("aria-label", "Reviewer decision for " + hint.turn_id);
-
-    const reason = element("textarea", undefined, "review-comment");
-    reason.rows = 2;
-    reason.placeholder = "Reason: why do you agree or disagree?";
-    reason.setAttribute("aria-label", "Reviewer reason for " + hint.turn_id);
-    const evidence = element("input", undefined, "review-evidence");
-    evidence.type = "text";
-    evidence.placeholder = "Evidence (leave blank to use the quoted text)";
-    evidence.setAttribute("aria-label", "Reviewer evidence for " + hint.turn_id);
-
-    const note = element("small", "Not reviewed yet", "review-note");
-    const regression = element("button", "Save as regression case", "secondary regression-button");
-    regression.type = "button";
-    regression.hidden = true;
-    regression.addEventListener("click", () => downloadRegression(key, variantId, hint));
-
-    const saved = reviews.get(key);
-    if (saved) { reason.value = saved.reason; evidence.value = saved.evidence; }
-
-    function save(decision) {
-      const previous = reviews.get(key) || {};
-      reviews.set(key, {
-        variant_id: variantId, turn_id: hint.turn_id, check_id: hint.check_id,
-        decision: decision !== undefined ? decision : (previous.decision || null),
-        reason: reason.value.trim(), evidence: evidence.value.trim(),
-        reviewed_at: new Date().toISOString()
-      });
-      refresh();
+  // ---- Rules vs AI judge -------------------------------------------------
+  // Shown only when Person 2's judge_results.js is loaded. Accepted shapes for
+  // window.JARAJudgeResults: { results: [{ case_id, variant_id, hints: [...] }] },
+  // the same as a plain array, or a flat array of hints that each carry variant_id.
+  function judgeHintsFor(variantId) {
+    const raw = window.JARAJudgeResults;
+    if (!raw) return null;
+    const list = Array.isArray(raw) ? raw : Array.isArray(raw.results) ? raw.results : [];
+    const out = [];
+    for (const item of list) {
+      if (!item) continue;
+      if (Array.isArray(item.hints)) { if (item.variant_id === variantId) out.push(...item.hints); }
+      else if (item.variant_id === variantId) out.push(item);
     }
-    function refresh() {
-      const current = (reviews.get(key) || {}).decision || null;
-      for (const button of group.querySelectorAll("button")) {
-        button.setAttribute("aria-pressed", String(button.dataset.decision === current));
+    return out;
+  }
+  function describe(hints) {
+    return hints.length ? Array.from(new Set(hints.map(h => pretty(h.check_id)))).join(", ") : "No flag";
+  }
+  function renderJudgeComparison(scenario, results) {
+    const box = document.getElementById("judge-compare");
+    box.replaceChildren();
+    if (!window.JARAJudgeResults) return;
+    box.append(element("h2", "Rules vs AI judge"),
+      element("p", "Each assistant turn, with what the rule checks and the AI judge flagged.", "muted"));
+    const table = element("table", undefined, "grid-table");
+    const head = element("tr");
+    for (const h of ["Turn", "Rule checks", "AI judge", "Agree?"]) head.append(element("th", h));
+    table.append(element("thead"), element("tbody"));
+    table.tHead.append(head);
+    for (const variant of scenario.variants) {
+      const ruleHints = (results.find(r => r.variant_id === variant.id) || { hints: [] }).hints;
+      const judgeHints = judgeHintsFor(variant.id) || [];
+      for (const turn of variant.turns) {
+        if (turn.role !== "assistant") continue;
+        const rules = ruleHints.filter(h => h.turn_id === turn.id);
+        const judge = judgeHints.filter(h => h.turn_id === turn.id);
+        const agree = (rules.length > 0) === (judge.length > 0);
+        const tr = element("tr", undefined, agree ? "" : "row-disagree");
+        const verdict = element("td");
+        verdict.append(element("span", agree ? "Agree" : "Disagree", "verdict verdict-" + (agree ? "agree" : "other")));
+        tr.append(element("td", turn.id), element("td", describe(rules)), element("td", describe(judge)), verdict);
+        table.tBodies[0].append(tr);
       }
-      box.dataset.decision = current || "";
-      note.textContent = current ? "Reviewer decision: " + current : "Not reviewed yet";
-      regression.hidden = current !== "confirmed";
     }
-    for (const [value, label] of DECISIONS) {
-      const button = element("button", label, "review-button review-" + value);
-      button.type = "button";
-      button.dataset.decision = value;
-      button.addEventListener("click", () => {
-        const current = (reviews.get(key) || {}).decision;
-        save(current === value ? null : value); // click again to undo
-      });
-      group.append(button);
-    }
-    reason.addEventListener("input", () => save());
-    evidence.addEventListener("input", () => save());
-    box.append(group, reason, evidence, note, regression);
-    refresh();
-    return box;
+    box.append(table);
   }
 
-  // human_review object for one hint, or null when nothing was entered.
-  function humanReviewFor(key, hint) {
-    const saved = reviews.get(key);
-    if (!saved || (!saved.decision && !saved.reason && !saved.evidence)) return null;
-    return {
-      decision: saved.decision || null,
-      reason: saved.reason,
-      evidence: saved.evidence || hint.evidence_quote,
-      reviewed_at: saved.reviewed_at
-    };
-  }
-
-  // Builds the export. Every original field is kept as it was; each finding only
-  // gains a separate human_review object, so automated and human judgement never mix.
-  function buildExport() {
-    const counts = { confirmed: 0, rejected: 0, unsure: 0, not_reviewed: 0 };
-    const results = report.results.map(result => ({
-      variant_id: result.variant_id,
-      hints: result.hints.map((hint, index) => {
-        const review = humanReviewFor([result.variant_id, hint.turn_id, hint.check_id, index].join("|"), hint);
-        counts[review && review.decision ? review.decision : "not_reviewed"] += 1;
-        return Object.assign({}, hint, { human_review: review });
-      })
-    }));
-    return Object.assign({}, report, { human_review_summary: counts, results });
-  }
+  function buildExport() { return review.attachToReport(report); }
 
   function downloadJSON(object, filename) {
     const blob = new Blob([JSON.stringify(object, null, 2) + "\n"], { type: "application/json" });
@@ -373,8 +378,8 @@
   function downloadRegression(key, variantId, hint) {
     const scenario = selectedCase();
     const variant = scenario.variants.find(v => v.id === variantId);
-    const review = humanReviewFor(key, hint);
-    if (!variant || !review || review.decision !== "confirmed") return;
+    const humanReview = review.humanReviewFor(key, hint);
+    if (!variant || !humanReview || (humanReview.decision !== "confirmed" && humanReview.decision !== "modified")) return;
     const turnIndex = variant.turns.findIndex(t => t.id === hint.turn_id);
     // Similar case: another example in the same case where this check raises nothing.
     let similar = null;
@@ -400,7 +405,7 @@
         description: "The " + pretty(hint.check_id) + " check should flag turn " + hint.turn_id + "."
       },
       evidence: { quote: hint.evidence_quote, automated_reason: hint.reason },
-      human_review: review,
+      human_review: humanReview,
       similar_case_should_pass: similar
         ? {
             variant_id: similar.id,
@@ -540,8 +545,8 @@
     box.append(element("p", note + (errors ? " " + errors + " check error(s)." : ""), "muted"), table);
   }
 
-  if (!data || !api || !Array.isArray(data.cases) || !data.cases.length) {
-    status.textContent = "Starter files are missing. Extract the full ZIP, then reopen index.html.";
+  if (!data || !api || !timeline || !review || !Array.isArray(data.cases) || !data.cases.length) {
+    status.textContent = "Starter files are missing (data.js, student_checks.js, timeline.js or review.js). Check the script tags in index.html.";
     status.className = "error";
     runButton.disabled = true;
     return;
