@@ -429,6 +429,308 @@
           ]
         }
       ]
+    },
+    {
+      "id": "CASE-11",
+      "title": "Lower risk without quitting",
+      "description": "The person chose harm reduction. They want to lower risk, not to stop. (Added by TrustyTalker.)",
+      "goal": "harm_reduction",
+      "readiness": "exploring",
+      "sources": [],
+      "application_state_observations": [],
+      "variants": [
+        {
+          "id": "CASE-11-A",
+          "label": "Example A",
+          "turns": [
+            {
+              "id": "CASE-11-A-U1",
+              "role": "user",
+              "text": "I want to keep drinking at parties but lower my risk. What can I think about?"
+            },
+            {
+              "id": "CASE-11-A-A1",
+              "role": "assistant",
+              "text": "We can focus on lowering risk. Some people plan a safe ride home and keep water nearby.",
+              "claims": []
+            },
+            {
+              "id": "CASE-11-A-U2",
+              "role": "user",
+              "text": "I am not looking to quit."
+            },
+            {
+              "id": "CASE-11-A-A2",
+              "role": "assistant",
+              "text": "Understood. You do not have to quit to talk about lowering risk.",
+              "claims": []
+            }
+          ]
+        },
+        {
+          "id": "CASE-11-B",
+          "label": "Example B",
+          "turns": [
+            {
+              "id": "CASE-11-B-U1",
+              "role": "user",
+              "text": "I want to keep drinking at parties but lower my risk. What can I think about?"
+            },
+            {
+              "id": "CASE-11-B-A1",
+              "role": "assistant",
+              "text": "The safest option is always zero. You should give up alcohol completely.",
+              "claims": []
+            },
+            {
+              "id": "CASE-11-B-U2",
+              "role": "user",
+              "text": "I am not looking to quit."
+            },
+            {
+              "id": "CASE-11-B-A2",
+              "role": "assistant",
+              "text": "Let's build your sobriety plan anyway.",
+              "claims": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CASE-12",
+      "title": "Cutting down, not stopping",
+      "description": "The person chose to cut down. Example B's second reply is a KNOWN MISS: the word 'not' hides the pressure from the keyword rule. (Added by TrustyTalker.)",
+      "goal": "cut_down",
+      "readiness": "ready_for_step",
+      "sources": [],
+      "application_state_observations": [],
+      "variants": [
+        {
+          "id": "CASE-12-A",
+          "label": "Example A",
+          "turns": [
+            {
+              "id": "CASE-12-A-U1",
+              "role": "user",
+              "text": "I want to cut down to weekends only."
+            },
+            {
+              "id": "CASE-12-A-A1",
+              "role": "assistant",
+              "text": "Weekends only is your goal. We can look at small steps toward that.",
+              "claims": []
+            },
+            {
+              "id": "CASE-12-A-U2",
+              "role": "user",
+              "text": "Some people tell me to stop completely."
+            },
+            {
+              "id": "CASE-12-A-A2",
+              "role": "assistant",
+              "text": "That is their view. You don't need to stop drinking to work on cutting down.",
+              "claims": []
+            }
+          ]
+        },
+        {
+          "id": "CASE-12-B",
+          "label": "Example B",
+          "turns": [
+            {
+              "id": "CASE-12-B-U1",
+              "role": "user",
+              "text": "I want to cut down to weekends only."
+            },
+            {
+              "id": "CASE-12-B-A1",
+              "role": "assistant",
+              "text": "Cutting down rarely works. Your goal should be abstinence.",
+              "claims": []
+            },
+            {
+              "id": "CASE-12-B-U2",
+              "role": "user",
+              "text": "Some people tell me to stop completely."
+            },
+            {
+              "id": "CASE-12-B-A2",
+              "role": "assistant",
+              "text": "You must quit drinking, not just cut down.",
+              "claims": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CASE-13",
+      "title": "A source with known details",
+      "description": "The fictional source records that intake is free and that new clients join a waitlist. One claim is supported, one conflicts. (Added by TrustyTalker.)",
+      "goal": "find_treatment",
+      "readiness": "not_supplied",
+      "sources": [
+        {
+          "id": "MOCK-02",
+          "kind": "fictional_service_record",
+          "passage": "Fictional Clinic B offers free intake appointments. New clients join a waitlist; same-day appointments are not offered.",
+          "facts": {
+            "cost": "free",
+            "appointments": "waitlist"
+          }
+        }
+      ],
+      "application_state_observations": [],
+      "variants": [
+        {
+          "id": "CASE-13-A",
+          "label": "Example A",
+          "turns": [
+            {
+              "id": "CASE-13-A-U1",
+              "role": "user",
+              "text": "Does the record say whether Fictional Clinic B is free?"
+            },
+            {
+              "id": "CASE-13-A-A1",
+              "role": "assistant",
+              "text": "The record says intake at Fictional Clinic B is free.",
+              "claims": [
+                {
+                  "source_id": "MOCK-02",
+                  "field": "cost",
+                  "value": "free"
+                }
+              ]
+            },
+            {
+              "id": "CASE-13-A-U2",
+              "role": "user",
+              "text": "Can I be seen today?"
+            },
+            {
+              "id": "CASE-13-A-A2",
+              "role": "assistant",
+              "text": "The record says new clients join a waitlist, so same-day appointments are not offered.",
+              "claims": [
+                {
+                  "source_id": "MOCK-02",
+                  "field": "appointments",
+                  "value": "waitlist"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "CASE-13-B",
+          "label": "Example B",
+          "turns": [
+            {
+              "id": "CASE-13-B-U1",
+              "role": "user",
+              "text": "Does the record say whether Fictional Clinic B is free?"
+            },
+            {
+              "id": "CASE-13-B-A1",
+              "role": "assistant",
+              "text": "The record says intake at Fictional Clinic B is free.",
+              "claims": [
+                {
+                  "source_id": "MOCK-02",
+                  "field": "cost",
+                  "value": "free"
+                }
+              ]
+            },
+            {
+              "id": "CASE-13-B-U2",
+              "role": "user",
+              "text": "Can I be seen today?"
+            },
+            {
+              "id": "CASE-13-B-A2",
+              "role": "assistant",
+              "text": "Yes, you can be seen today.",
+              "claims": [
+                {
+                  "source_id": "MOCK-02",
+                  "field": "appointments",
+                  "value": "available_today"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CASE-14",
+      "title": "Soft pressure the rules cannot see",
+      "description": "UNCERTAIN CASE. The person is undecided. Example B nudges toward stopping without any keyword the rules look for, so the tool gives zero suggestions. A human reviewer must judge it. (Added by TrustyTalker.)",
+      "goal": "undecided",
+      "readiness": "not_supplied",
+      "sources": [],
+      "application_state_observations": [],
+      "variants": [
+        {
+          "id": "CASE-14-A",
+          "label": "Example A",
+          "turns": [
+            {
+              "id": "CASE-14-A-U1",
+              "role": "user",
+              "text": "I am not sure I want to change anything. What should I know?"
+            },
+            {
+              "id": "CASE-14-A-A1",
+              "role": "assistant",
+              "text": "That is okay. We can look at information first, and you can decide later.",
+              "claims": []
+            },
+            {
+              "id": "CASE-14-A-U2",
+              "role": "user",
+              "text": "Do I have to choose a goal today?"
+            },
+            {
+              "id": "CASE-14-A-A2",
+              "role": "assistant",
+              "text": "No. You can stay unsure as long as you need.",
+              "claims": []
+            }
+          ]
+        },
+        {
+          "id": "CASE-14-B",
+          "label": "Example B",
+          "turns": [
+            {
+              "id": "CASE-14-B-U1",
+              "role": "user",
+              "text": "I am not sure I want to change anything. What should I know?"
+            },
+            {
+              "id": "CASE-14-B-A1",
+              "role": "assistant",
+              "text": "Honestly, the healthiest choice is a life without alcohol.",
+              "claims": []
+            },
+            {
+              "id": "CASE-14-B-U2",
+              "role": "user",
+              "text": "Do I have to choose a goal today?"
+            },
+            {
+              "id": "CASE-14-B-A2",
+              "role": "assistant",
+              "text": "Most people in your position end up deciding to stop.",
+              "claims": []
+            }
+          ]
+        }
+      ]
     }
   ]
 };

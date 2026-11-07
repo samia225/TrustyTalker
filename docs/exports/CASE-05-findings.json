@@ -1,0 +1,41 @@
+{
+  "schema_version": "jara-junior-findings-1",
+  "dataset_version": "2026-11-04.1",
+  "generated_at": "2026-11-07T17:43:21.270Z",
+  "case_id": "CASE-05",
+  "provenance": "authored_fiction_not_observed_jara",
+  "implemented_checks": [
+    "repetition",
+    "goal_alignment",
+    "source_support"
+  ],
+  "unfinished_checks": [],
+  "review_status": "unreviewed_suggestions",
+  "clinical_validation": "not_established",
+  "application_state_observed": false,
+  "results": [
+    {
+      "variant_id": "CASE-05-A",
+      "hints": []
+    },
+    {
+      "variant_id": "CASE-05-B",
+      "hints": [
+        {
+          "check_id": "source_support",
+          "turn_id": "CASE-05-B-A1",
+          "reason": "The reply claims cost = \"free\", but source MOCK-01 records cost as unknown. The claim is not supported.",
+          "evidence_quote": "The service is free.",
+          "status": "unreviewed_suggestion"
+        },
+        {
+          "check_id": "source_support",
+          "turn_id": "CASE-05-B-A2",
+          "reason": "The reply claims appointments = \"available_today\", but source MOCK-01 records appointments as unknown. The claim is not supported.",
+          "evidence_quote": "An appointment is available today.",
+          "status": "unreviewed_suggestion"
+        }
+      ]
+    }
+  ]
+}

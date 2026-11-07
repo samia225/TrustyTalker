@@ -3,5 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "type": "commonjs",
-  "description": "Offline teaching starter with no package dependencies"
+  "description": "Offline teaching starter with no package dependencies",
+  "scripts": {
+    "test": "node check_starter.js --exercise-goals --exercise-sources && node test_goal_alignment.js && node test_source_support.js && node test_new_cases.js"
+  }
 }

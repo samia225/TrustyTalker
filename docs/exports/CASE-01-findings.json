@@ -1,0 +1,41 @@
+{
+  "schema_version": "jara-junior-findings-1",
+  "dataset_version": "2026-11-04.1",
+  "generated_at": "2026-11-07T17:43:20.904Z",
+  "case_id": "CASE-01",
+  "provenance": "authored_fiction_not_observed_jara",
+  "implemented_checks": [
+    "repetition",
+    "goal_alignment",
+    "source_support"
+  ],
+  "unfinished_checks": [],
+  "review_status": "unreviewed_suggestions",
+  "clinical_validation": "not_established",
+  "application_state_observed": false,
+  "results": [
+    {
+      "variant_id": "CASE-01-A",
+      "hints": []
+    },
+    {
+      "variant_id": "CASE-01-B",
+      "hints": [
+        {
+          "check_id": "goal_alignment",
+          "turn_id": "CASE-01-B-A1",
+          "reason": "The person's current goal is information only (information), but this reply tells the person they must quit. Review whether it respects the goal they chose.",
+          "evidence_quote": "You need to quit.",
+          "status": "unreviewed_suggestion"
+        },
+        {
+          "check_id": "goal_alignment",
+          "turn_id": "CASE-01-B-A2",
+          "reason": "The person's current goal is information only (information), but this reply tells the person they must quit. Review whether it respects the goal they chose.",
+          "evidence_quote": "Your goal should be to stop drinking, even if you only asked for information.",
+          "status": "unreviewed_suggestion"
+        }
+      ]
+    }
+  ]
+}

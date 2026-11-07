@@ -1,0 +1,34 @@
+{
+  "schema_version": "jara-junior-findings-1",
+  "dataset_version": "2026-11-04.1",
+  "generated_at": "2026-11-07T17:43:21.603Z",
+  "case_id": "CASE-13",
+  "provenance": "authored_fiction_not_observed_jara",
+  "implemented_checks": [
+    "repetition",
+    "goal_alignment",
+    "source_support"
+  ],
+  "unfinished_checks": [],
+  "review_status": "unreviewed_suggestions",
+  "clinical_validation": "not_established",
+  "application_state_observed": false,
+  "results": [
+    {
+      "variant_id": "CASE-13-A",
+      "hints": []
+    },
+    {
+      "variant_id": "CASE-13-B",
+      "hints": [
+        {
+          "check_id": "source_support",
+          "turn_id": "CASE-13-B-A2",
+          "reason": "The reply claims appointments = \"available_today\", but source MOCK-02 records appointments = \"waitlist\". The claim conflicts with the source.",
+          "evidence_quote": "Yes, you can be seen today.",
+          "status": "unreviewed_suggestion"
+        }
+      ]
+    }
+  ]
+}

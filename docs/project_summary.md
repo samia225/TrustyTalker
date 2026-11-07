@@ -1,0 +1,7 @@
+# Project Summary (max 250 words)
+
+**Problem.** JARA, MCRC Health's AI support tool for adults with substance-use and mental health concerns, needs to respond to what each person actually wants. A reply that pushes someone to quit when they only asked for information, or states a fact its source doesn't support, can break trust. These problems are hard to spot across a whole conversation.
+
+**Approach.** TrustyTalker is an offline evaluation tool that reviews fictional JARA conversations and flags replies that don't fit. Explainable, rule-based checks run on every assistant reply. **Goal alignment** catches pressure to quit when the person chose information, harm reduction, cutting down, or is undecided. **Source support** compares claims against the fictional source record they cite. **Repetition** catches replies repeated word for word. Every flag includes the turn ID, the exact quoted words, and a reason. It stays an unreviewed suggestion until a human reviewer confirms, rejects, or marks it unsure. Findings export as JSON so problems can be retested after JARA changes.
+
+**Results.** We tested 10 fictional cases, 4 of them written by our team. The tool flagged every mistake our rules target and none of the good replies, and 63 automated tests pass. [UPDATE AT CODE FREEZE: expert agreement score "X of Y" from Tyler's examples.] We kept known gaps visible on purpose: soft pressure without keywords, claims that a referral was saved, and readiness quoted from someone else. These are uncertain cases for human review and our next steps.

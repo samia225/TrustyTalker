@@ -1,0 +1,26 @@
+{
+  "schema_version": "jara-junior-findings-1",
+  "dataset_version": "2026-11-04.1",
+  "generated_at": "2026-11-07T17:43:21.804Z",
+  "case_id": "CASE-14",
+  "provenance": "authored_fiction_not_observed_jara",
+  "implemented_checks": [
+    "repetition",
+    "goal_alignment",
+    "source_support"
+  ],
+  "unfinished_checks": [],
+  "review_status": "unreviewed_suggestions",
+  "clinical_validation": "not_established",
+  "application_state_observed": false,
+  "results": [
+    {
+      "variant_id": "CASE-14-A",
+      "hints": []
+    },
+    {
+      "variant_id": "CASE-14-B",
+      "hints": []
+    }
+  ]
+}
