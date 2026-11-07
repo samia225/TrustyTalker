@@ -4,7 +4,7 @@
 
 ## Inspiration
 
-Many people who use a substance-use support tool never chose to quit. They may want information, want to cut down, or be unsure. A chatbot that answers every message with "you need to quit" isn't neutral: it can push people away from support they came looking for. MCRC Health wants to catch these problems before testing JARA with real participants. We liked that the question wasn't "build a better chatbot" but "how do you know when a chatbot is wrong, and can you prove it?" [TEAM: one sentence on why this mattered to us personally, if anyone wants to share.]
+Many people who use a substance-use support tool never chose to quit. They may want information, want to cut down, or be unsure. A chatbot that answers every message with "you need to quit" isn't neutral: it can push people away from support they came looking for. MCRC Health wants to catch these problems before testing JARA with real participants. We liked that the question wasn't "build a better chatbot" but "how do you know when a chatbot is wrong, and can you prove it?" As students, we know how fast someone stops listening when they feel judged, and we wanted to help JARA meet people where they are instead of where a script expects them to be.
 
 ## What we learned
 
