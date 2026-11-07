@@ -38,7 +38,7 @@
   function trackedStates(scenario, variant) {
     let tracker = root.JARAState;
     if (!tracker && typeof require === "function") {
-      try { tracker = require("./state_tracker.js"); } catch (error) { tracker = null; }
+      try { tracker = require("../engine/state_tracker.js"); } catch (error) { tracker = null; }
     }
     return tracker ? tracker.trackState(scenario, variant) : null;
   }

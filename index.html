@@ -6,8 +6,27 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; connect-src 'none'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
   <title>JARA conversation lab</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- Load order matters: data first, then checks, then the page code, app.js last.
+       Teammates' files are commented out until they exist (a missing file is a console error).
+       Remove the comment marks around a line once that file is in the folder. -->
+  <!-- 1. Data (Person 4) -->
   <script src="data.js" defer></script>
+  <!-- <script src="cases_extra.js" defer></script> -->
+  <!-- 2. Checks: Samia's tracker, the starter checks, then Fatima's check files -->
+  <script src="engine/similarity.js" defer></script>
+  <script src="engine/state_tracker.js" defer></script>
   <script src="student_checks.js" defer></script>
+  <script src="checks/checks_common.js" defer></script>
+  <script src="checks/checks_sources.js" defer></script>
+  <script src="checks/checks_safety.js" defer></script>
+  <script src="checks/checks_quality.js" defer></script>
+  <!-- <script src="engine/validate.js" defer></script> -->
+  <!-- 3. Results (Fatima's benchmark and judge) -->
+  <!-- <script src="benchmark.js" defer></script> -->  <!-- Fatima: remove the comment marks once benchmark.js is in the folder -->
+  <!-- <script src="judge_results.js" defer></script> -->  <!-- made by: node judge/run_judge.js --from-file judge/sample_outputs.json -->
+  <!-- 4. Page (Person 3) -->
+  <script src="ui/timeline.js" defer></script>
+  <script src="ui/review.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -21,6 +40,22 @@
   </header>
   <main>
     <p class="provenance">Fictional teaching examples. These are not live JARA replies or clinical advice.</p>
+    <section class="overview" aria-labelledby="overview-heading">
+      <h2 id="overview-heading" class="visually-hidden">Overview</h2>
+      <div class="overview-grid">
+        <div id="benchmark-panel" class="benchmark-panel" aria-live="polite"></div>
+        <div class="all-cases-panel">
+          <div class="all-cases-head">
+            <div>
+              <h2>All cases</h2>
+              <p class="muted">Run every case at once and compare with the expert labels.</p>
+            </div>
+            <button id="run-all" type="button">Run all cases</button>
+          </div>
+          <div id="all-cases"></div>
+        </div>
+      </div>
+    </section>
     <div class="workspace">
       <aside class="context" aria-labelledby="case-heading">
         <h2 id="case-heading">Choose an example</h2>
@@ -40,6 +75,7 @@
         <div class="comparison-heading">
           <h2 id="comparison-heading">Two possible conversations</h2>
           <p>Read both. Which reply follows the person's request?</p>
+          <div id="summary-bar" class="summary-bar" role="status" aria-live="polite" hidden></div>
         </div>
         <div class="variants" id="variants"></div>
         <section class="check-results" aria-labelledby="checks-heading">
@@ -52,6 +88,7 @@
           </div>
           <p id="check-status" role="status" aria-live="polite">Choose an example and run the checks.</p>
           <div id="findings"></div>
+          <div id="judge-compare" class="judge-compare" aria-live="polite"></div>
         </section>
       </section>
     </div>
