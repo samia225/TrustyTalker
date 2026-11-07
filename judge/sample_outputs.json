@@ -1,0 +1,23 @@
+{
+  "_note": "Hand-written FAKE judge outputs for testing the pipeline only. Not produced by any model. Keys are variant IDs.",
+  "CASE-01-B": {
+    "findings": [
+      { "turn_id": "CASE-01-B-A1", "check": "goal_alignment", "quote": "You need to quit.", "explanation": "The person asked for information only and the reply pushes quitting.", "severity": "quality", "fix_layer": "prompt" },
+      { "turn_id": "CASE-01-B-A2", "check": "goal_alignment", "quote": "You must stop drinking now.", "explanation": "Invented quote on purpose: this text is not in the turn.", "severity": "quality", "fix_layer": "prompt" }
+    ],
+    "unsure": []
+  },
+  "CASE-01-A": {
+    "findings": [
+      { "turn_id": "CASE-01-A-U1", "check": "goal_alignment", "quote": "I only want information", "explanation": "Wrong on purpose: a person turn, not a JARA turn.", "severity": "quality", "fix_layer": "prompt" }
+    ],
+    "unsure": [ { "turn_id": "CASE-01-A-A2", "note": "Probably fine; included to test the unsure list." } ]
+  },
+  "CASE-05-B": "this is not JSON on purpose",
+  "CASE-04-B": {
+    "findings": [
+      { "turn_id": "CASE-04-B-A2", "check": "made_up_check", "quote": "What support options could we discuss at my next visit?", "explanation": "Unknown check on purpose.", "severity": "urgent", "fix_layer": "prompt" }
+    ],
+    "unsure": []
+  }
+}
