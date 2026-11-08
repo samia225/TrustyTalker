@@ -242,5 +242,15 @@
 
   const api = { checks, makeHint, runChecks, unplaceableHints, goalTimeline, checkRepeatedReply, checkGoalAlignment, checkSourceSupport };
   root.JARAChecks = api;
-  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = api;
+    // Node only (check_starter.js, tests, judge): load the extra check files so they
+    // register on JARAChecks, as the page does with its <script> tags. A file that is
+    // not in the folder yet is skipped; any other error is reported.
+    for (const file of ["./checks/checks_common.js", "./checks/checks_sources.js", "./checks/checks_safety.js", "./checks/checks_quality.js"]) {
+      try { require(file); } catch (error) {
+        if (error.code !== "MODULE_NOT_FOUND" || !String(error.message).includes(file.slice(2))) throw error;
+      }
+    }
+  }
 })(typeof globalThis !== "undefined" ? globalThis : this);
