@@ -90,6 +90,15 @@ test("judge_results.js is a script for the page, not JSON", () => {
   assert.equal(window.JUDGE_RESULTS.status, "pipeline_test");
 });
 
+test("--placeholder records 'not run' and does NOT define JUDGE_RESULTS (page shows no judge table)", () => {
+  quietly(() => judge.run(["--placeholder"]));
+  const text = fs.readFileSync(OUT, "utf8");
+  const window = {};
+  new Function("window", text)(window);
+  assert.equal(window.JUDGE_RESULTS, undefined, "an empty results object would show the judge as 'No flag'");
+  assert.equal(window.JUDGE_STATUS.status, "not_run");
+});
+
 // Leave the folder as it was: the pipeline test output must not be mistaken for a real run.
 if (hadResults === null) fs.rmSync(OUT, { force: true }); else fs.writeFileSync(OUT, hadResults);
 console.log("\n" + passed + " judge tests passed (no model was called).");
