@@ -4,15 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; connect-src 'none'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
-  <title>JARA conversation lab</title>
+  <title>TrustyTalker: JARA conversation review</title>
   <link rel="stylesheet" href="styles.css">
-  <!-- Load order matters: data first, then checks, then the page code, app.js last.
-       Teammates' files are commented out until they exist (a missing file is a console error).
-       Remove the comment marks around a line once that file is in the folder. -->
-  <!-- 1. Data (Person 4) -->
+  <!-- Load order matters: data, engine, checks, answer key, UI modules, then app.js. -->
   <script src="data.js" defer></script>
   <!-- <script src="cases_extra.js" defer></script> -->
-  <!-- 2. Checks: Samia's tracker, the starter checks, then Fatima's check files -->
   <script src="engine/similarity.js" defer></script>
   <script src="engine/state_tracker.js" defer></script>
   <script src="student_checks.js" defer></script>
@@ -21,77 +17,173 @@
   <script src="checks/checks_safety.js" defer></script>
   <script src="checks/checks_quality.js" defer></script>
   <!-- <script src="engine/validate.js" defer></script> -->
-  <!-- 3. Results (Fatima's benchmark and judge) -->
-  <!-- <script src="benchmark.js" defer></script> -->  <!-- Fatima: remove the comment marks once benchmark.js is in the folder -->
+  <!-- Answer key for the agreement panel (read only, owned by Person 4). -->
+  <script src="tests/expected.js" defer></script>
+  <!-- <script src="benchmark.js" defer></script> -->  <!-- optional: used instead of the built-in score once it exists -->
   <!-- <script src="judge_results.js" defer></script> -->  <!-- made by: node judge/run_judge.js --from-file judge/sample_outputs.json -->
-  <!-- 4. Page (Person 3) -->
-  <script src="ui/timeline.js" defer></script>
-  <script src="ui/review.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#comparison">Skip to conversation</a>
-  <header class="site-header">
-    <div>
-      <h1>JARA conversation lab</h1>
-      <p>Compare a person's request with the reply they receive.</p>
-    </div>
-    <a class="guide-link" href="START_HERE.txt" target="_blank" rel="noopener">Open the start guide</a>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="app-header">
+    <nav class="topnav" aria-label="Main">
+      <a class="brand" href="#cases">
+<svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+          <path class="logo-back" d="M10 5h16a7 7 0 0 1 7 7v8a7 7 0 0 1-7 7H14l-6 5v-5.6A7 7 0 0 1 3 20v-8a7 7 0 0 1 7-7z"></path>
+          <path class="logo-front" d="M22 16h16a7 7 0 0 1 7 7v9a7 7 0 0 1-5 6.7V44l-6-5H22a7 7 0 0 1-7-7v-9a7 7 0 0 1 7-7z"></path>
+          <rect class="logo-mark-hl" x="20" y="25.5" width="14" height="5" rx="2.5"></rect>
+          <rect class="logo-line" x="21" y="21" width="18" height="2.4" rx="1.2"></rect>
+          <rect class="logo-line" x="21" y="33" width="12" height="2.4" rx="1.2"></rect>
+          <rect class="logo-line" x="22" y="26.8" width="10" height="2.4" rx="1.2"></rect>
+        </svg>
+        <span class="brand-name">TrustyTalker</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#cases" data-nav="cases">Cases</a></li>
+        <li><a href="#conversation" data-nav="conversation">Conversation</a></li>
+        <li><a href="#findings" data-nav="findings">Findings</a></li>
+      </ul>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
+    </nav>
   </header>
-  <main>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-inner">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="#cases">Cases</a></li>
+          <li id="crumb-case-item"><span id="crumb-case">CASE-01</span></li>
+          <li id="crumb-page-item" hidden><span id="crumb-page" aria-current="page"></span></li>
+        </ol>
+      </nav>
+      <h1 id="hero-title">Review JARA conversations</h1>
+      <p class="hero-sub">Checks whether each reply respects what the person asked for, shows the exact words that went wrong, and leaves the final call to a reviewer.</p>
+      <p class="hero-stats" id="hero-stats" aria-live="polite"></p>
+      <div class="summary-card" aria-label="Current case">
+        <div class="sum-item"><span class="sum-label">Case</span><span class="sum-value" id="sum-case">-</span></div>
+        <div class="sum-item"><span class="sum-label">Goal</span><span class="sum-value" id="sum-goal">-</span></div>
+        <div class="sum-item"><span class="sum-label">Readiness</span><span class="sum-value" id="sum-ready">-</span></div>
+        <div class="sum-item"><span class="sum-label">Reviewed</span><span class="sum-value" id="sum-reviewed">-</span></div>
+        <div class="case-switch">
+          <label for="case-select" class="sum-label">Change case</label>
+          <select id="case-select"></select>
+          <span id="case-switch-status" class="visually-hidden" role="status"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+  <main id="main-content" tabindex="-1">
+    <div class="view" data-view="cases" id="view-cases">
     <p class="provenance">Fictional teaching examples. These are not live JARA replies or clinical advice.</p>
+    <ol class="steps" aria-label="How to use TrustyTalker">
+      <li><strong>Pick a case</strong> in the All cases table, or add your own. Its checks run straight away.</li>
+      <li><strong>Read the two conversations.</strong> Red replies were flagged; click the marked words to see why.</li>
+      <li><strong>Review each finding:</strong> confirm, reject or mark unsure, add a reason, then export.</li>
+    </ol>
     <section class="overview" aria-labelledby="overview-heading">
       <h2 id="overview-heading" class="visually-hidden">Overview</h2>
       <div class="overview-grid">
         <div id="benchmark-panel" class="benchmark-panel" aria-live="polite"></div>
-        <div class="all-cases-panel">
-          <div class="all-cases-head">
-            <div>
-              <h2>All cases</h2>
-              <p class="muted">Run every case at once and compare with the expert labels.</p>
-            </div>
-            <button id="run-all" type="button">Run all cases</button>
-          </div>
-          <div id="all-cases"></div>
-        </div>
       </div>
     </section>
-    <div class="workspace">
-      <aside class="context" aria-labelledby="case-heading">
-        <h2 id="case-heading">Choose an example</h2>
-        <label for="case-select">Scenario</label>
-        <select id="case-select"></select>
-        <p id="case-description"></p>
-        <dl id="case-facts"></dl>
-        <h3>Available source</h3>
-        <div id="source-context"></div>
-        <details class="coding-help">
-          <summary>Your first coding task</summary>
-          <p>Open <code>student_checks.js</code> in a text editor. Start with the working repetition example, then complete <code>checkGoalAlignment</code>.</p>
-          <p><a href="TASKS.txt" target="_blank" rel="noopener">Read the tasks and success criteria</a></p>
-        </details>
-      </aside>
+    <section class="case-picker" id="cases" aria-labelledby="case-heading">
+      <div class="picker-head">
+        <div>
+          <h2 id="case-heading">All cases</h2>
+          <p class="muted">Click a case to open it below. Every example is compared with the team's answer key.</p>
+        </div>
+        <div class="picker-actions">
+          <button id="add-case" class="add-case" type="button" aria-haspopup="dialog">Add your own case</button>
+          <button id="run-all" type="button">Run all cases</button>
+        </div>
+      </div>
+      <div id="case-grid"></div>
+    </section>
+    </div>
+    <div class="view workspace" data-view="conversation" id="view-conversation" hidden>
+      <div class="view-bar">
+        <a class="back-button" href="#cases">Back to all cases</a>
+        <a class="view-next" href="#findings">Go to findings</a>
+      </div>
       <section class="comparison" id="comparison" aria-labelledby="comparison-heading">
+        <div class="case-details" aria-label="About this case">
+          <div class="case-details-text">
+            <h3 class="case-about">About this case</h3>
+            <p id="case-description"></p>
+          </div>
+          <dl id="case-facts"></dl>
+          <div class="case-source">
+            <h3>Available source</h3>
+            <div id="source-context"></div>
+          </div>
+        </div>
         <div class="comparison-heading">
           <h2 id="comparison-heading">Two possible conversations</h2>
           <p>Read both. Which reply follows the person's request?</p>
           <div id="summary-bar" class="summary-bar" role="status" aria-live="polite" hidden></div>
         </div>
         <div class="variants" id="variants"></div>
-        <section class="check-results" aria-labelledby="checks-heading">
-          <div class="check-toolbar">
-            <div><h2 id="checks-heading">Starter checks</h2><p id="coverage"></p></div>
-            <div class="actions">
-              <button id="run-checks" type="button">Run checks</button>
-              <button id="export-results" class="secondary" type="button" disabled>Export findings</button>
-            </div>
-          </div>
-          <p id="check-status" role="status" aria-live="polite">Choose an example and run the checks.</p>
-          <div id="findings"></div>
-          <div id="judge-compare" class="judge-compare" aria-live="polite"></div>
-        </section>
       </section>
     </div>
+    <div class="view" data-view="findings" id="view-findings" hidden>
+      <div class="view-bar">
+        <a class="back-button" href="#cases">Back to all cases</a>
+        <a class="view-next view-prev" href="#conversation">Back to the conversation</a>
+      </div>
+    <section class="check-results" id="findings-section" aria-labelledby="checks-heading">
+      <div class="check-toolbar">
+        <div><h2 id="checks-heading">Findings to review</h2><p id="coverage"></p></div>
+        <div class="actions">
+          <button id="run-checks" class="secondary" type="button">Run checks again</button>
+          <button id="import-results" class="secondary" type="button" aria-describedby="import-help">Import findings</button>
+          <button id="export-results" class="secondary" type="button" disabled>Export findings</button>
+          <input id="import-file" type="file" accept="application/json,.json" hidden>
+        </div>
+      </div>
+      <p id="import-help" class="visually-hidden">Loads a findings file you exported earlier and restores its reviewer decisions. The file stays on this computer.</p>
+      <p id="check-status" role="status" aria-live="polite">Pick a case to see its findings.</p>
+      <p id="import-status" class="import-status" role="status" aria-live="polite"></p>
+      <div id="review-progress" class="review-progress" aria-live="polite" hidden></div>
+      <div id="finding-filters" class="grid-filters finding-filters" role="group" aria-label="Show findings" hidden></div>
+      <p id="findings-empty" class="muted case-list-empty" hidden></p>
+      <div id="findings"></div>
+      <div id="judge-compare" class="judge-compare" aria-live="polite"></div>
+    </section>
+    </div>
+    <dialog id="add-case-dialog" class="add-case-dialog" aria-labelledby="add-case-title" aria-describedby="add-case-help">
+      <div class="dialog-head">
+        <h2 id="add-case-title">Add your own case</h2>
+        <button id="add-case-close" class="dialog-close secondary" type="button" aria-label="Close">Close</button>
+      </div>
+      <p id="add-case-help" class="muted">Type a fictional conversation, one turn per line. Start each line with <strong>P:</strong> for the person or <strong>J:</strong> for JARA. The case stays in this page only; it is not saved to data.js. Never paste real conversations.</p>
+      <div class="field">
+        <label for="add-title">Case title</label>
+        <input id="add-title" type="text" autocomplete="off" placeholder="For example: Asked for options, got a quit plan">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="add-goal">Person's goal</label>
+          <select id="add-goal"></select>
+        </div>
+        <div class="field">
+          <label for="add-readiness">Readiness</label>
+          <select id="add-readiness"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="add-a">Example A</label>
+        <textarea id="add-a" rows="5" aria-describedby="add-format" placeholder="P: I only want to know my options.&#10;J: You need to quit."></textarea>
+      </div>
+      <div class="field">
+        <label for="add-b">Example B <span class="muted">(optional, for comparison)</span></label>
+        <textarea id="add-b" rows="4" aria-describedby="add-format" placeholder="P: I only want to know my options.&#10;J: Here are three options we can look at."></textarea>
+      </div>
+      <p id="add-format" class="muted small">Format: one turn per line, starting with P: or J:.</p>
+      <p id="add-error" class="form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="add-cancel" class="secondary" type="button">Cancel</button>
+        <button id="add-save" type="button">Add case and run checks</button>
+      </div>
+    </dialog>
     <footer>Local files only. There is no account, database or AI connection in this starter.</footer>
   </main>
   <noscript>This starter needs JavaScript enabled. Open index.html in a normal browser window.</noscript>
