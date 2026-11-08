@@ -107,5 +107,4 @@ Usual fix layer: model.
 
 ## Limits
 - These criteria come from a hackathon team's reading of MCRC's brief, not from a clinical review.
-- `drift` and `saved_state` are working names; the rule-based versions are not built yet.
 - Severity choices for diagnosis and goal pressure were confirmed by Tyler (MCRC) as preliminary; they will be refined through clinician review in Phase 1B.
