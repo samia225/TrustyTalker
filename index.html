@@ -27,7 +27,7 @@
   <a class="skip-link" href="#main-content">Skip to main content</a>
   <header class="app-header">
     <nav class="topnav" aria-label="Main">
-      <a class="brand" href="#cases">
+      <a class="brand" href="#overview">
 <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
           <path class="logo-back" d="M10 5h16a7 7 0 0 1 7 7v8a7 7 0 0 1-7 7H14l-6 5v-5.6A7 7 0 0 1 3 20v-8a7 7 0 0 1 7-7z"></path>
           <path class="logo-front" d="M22 16h16a7 7 0 0 1 7 7v9a7 7 0 0 1-5 6.7V44l-6-5H22a7 7 0 0 1-7-7v-9a7 7 0 0 1 7-7z"></path>
@@ -38,11 +38,13 @@
         </svg>
         <span class="brand-name">TrustyTalker</span>
       </a>
-      <ul class="nav-links">
-        <li><a href="#cases" data-nav="cases">Cases</a></li>
-        <li><a href="#conversation" data-nav="conversation">Conversation</a></li>
-        <li><a href="#findings" data-nav="findings">Findings</a></li>
-      </ul>
+      <ol class="nav-links nav-steps">
+        <li><a href="#overview" data-nav="overview"><span class="nav-num" aria-hidden="true">1</span>Home</a></li>
+        <li><a href="#review" data-nav="review"><span class="nav-num" aria-hidden="true">2</span>Review</a></li>
+        <li><a href="#results" data-nav="results"><span class="nav-num" aria-hidden="true">3</span>Results</a></li>
+      </ol>
+      <a class="nav-browse" href="#cases" data-nav="cases">Browse cases</a>
+      <div class="account" id="account" aria-label="Your account"></div>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
     </nav>
   </header>
@@ -50,60 +52,362 @@
     <div class="hero-inner">
       <nav class="breadcrumb" aria-label="Breadcrumb">
         <ol>
-          <li><a href="#cases">Cases</a></li>
+          <li><a href="#overview">Home</a></li>
+          <li id="crumb-cases-item" hidden><a href="#cases">Browse cases</a></li>
           <li id="crumb-case-item"><span id="crumb-case">CASE-01</span></li>
           <li id="crumb-page-item" hidden><span id="crumb-page" aria-current="page"></span></li>
         </ol>
       </nav>
-      <h1 id="hero-title">Review JARA conversations</h1>
-      <p class="hero-sub">Checks whether each reply respects what the person asked for, shows the exact words that went wrong, and leaves the final call to a reviewer.</p>
+      <h1 id="hero-title">Review JARA's replies</h1>
+      <p class="hero-sub" id="hero-sub">Automatic checks flag replies that may ignore what the person asked for. You decide whether each one is a real problem.</p>
       <p class="hero-stats" id="hero-stats" aria-live="polite"></p>
-      <div class="summary-card" aria-label="Current case">
-        <div class="sum-item"><span class="sum-label">Case</span><span class="sum-value" id="sum-case">-</span></div>
-        <div class="sum-item"><span class="sum-label">Goal</span><span class="sum-value" id="sum-goal">-</span></div>
-        <div class="sum-item"><span class="sum-label">Readiness</span><span class="sum-value" id="sum-ready">-</span></div>
-        <div class="sum-item"><span class="sum-label">Reviewed</span><span class="sum-value" id="sum-reviewed">-</span></div>
-        <div class="case-switch">
-          <label for="case-select" class="sum-label">Change case</label>
-          <select id="case-select"></select>
-          <span id="case-switch-status" class="visually-hidden" role="status"></span>
-        </div>
-      </div>
     </div>
   </section>
   <main id="main-content" tabindex="-1">
-    <div class="view" data-view="cases" id="view-cases">
-    <p class="provenance">Fictional teaching examples. These are not live JARA replies or clinical advice.</p>
-    <ol class="steps" aria-label="How to use TrustyTalker">
-      <li><strong>Pick a case</strong> in the All cases table, or add your own. Its checks run straight away.</li>
-      <li><strong>Read the two conversations.</strong> Red replies were flagged; click the marked words to see why.</li>
-      <li><strong>Review each finding:</strong> confirm, reject or mark unsure, add a reason, then export.</li>
-    </ol>
-    <section class="overview" aria-labelledby="overview-heading">
-      <h2 id="overview-heading" class="visually-hidden">Overview</h2>
-      <div class="overview-grid">
-        <div id="benchmark-panel" class="benchmark-panel" aria-live="polite"></div>
+    <!-- WELCOME: log in, sign up or continue as a guest -->
+    <div class="view" data-view="welcome" id="view-welcome" hidden>
+      <section class="auth-card" aria-labelledby="auth-heading">
+        <h2 id="auth-heading">How do you want to start?</h2>
+        <div class="auth-tabs" role="tablist" aria-label="Sign in options">
+          <button class="auth-tab" type="button" role="tab" id="tab-login" aria-controls="panel-login" data-tab="login" aria-selected="true">Log in</button>
+          <button class="auth-tab" type="button" role="tab" id="tab-signup" aria-controls="panel-signup" data-tab="signup" aria-selected="false" tabindex="-1">Sign up</button>
+          <button class="auth-tab" type="button" role="tab" id="tab-guest" aria-controls="panel-guest" data-tab="guest" aria-selected="false" tabindex="-1">Continue as a guest</button>
+        </div>
+        <form class="auth-panel" id="panel-login" role="tabpanel" aria-labelledby="tab-login" data-tab="login" novalidate>
+          <button type="button" class="google-button secondary">Continue with Google</button>
+          <p class="google-note muted small" tabindex="-1" hidden>Google sign-in needs MCRC's login server, so it is not available in this offline demo. Use your email below, or continue as a guest.</p>
+          <p class="or-line" aria-hidden="true"><span>or with email</span></p>
+          <div class="field"><label for="login-email">Email</label><input id="login-email" type="email" autocomplete="username" required></div>
+          <div class="field"><label for="login-password">Password</label><input id="login-password" type="password" autocomplete="current-password" required></div>
+          <p class="muted">Your reviewing role comes from your sign-up.</p>
+          <p class="form-error" id="login-error" role="alert"></p>
+          <button type="submit">Log in</button>
+        </form>
+        <form class="auth-panel signup-wizard" id="panel-signup" role="tabpanel" aria-labelledby="tab-signup" data-tab="signup" hidden novalidate>
+          <button type="button" class="google-button secondary">Continue with Google</button>
+          <p class="google-note muted small" tabindex="-1" hidden>Google sign-in needs MCRC's login server, so it is not available in this offline demo. Sign up with your email below, or continue as a guest.</p>
+          <p class="or-line" aria-hidden="true"><span>or with email</span></p>
+          <p class="wizard-progress" id="wizard-progress" aria-live="polite">Step 1 of 4</p>
+          <ol class="wizard-dots" aria-hidden="true"><li></li><li></li><li></li><li></li></ol>
+          <p class="muted small wizard-once">You only fill this in once. Your answers are linked to every decision you make, so MCRC can see who reviewed.</p>
+
+          <fieldset class="wizard-step" data-step="1">
+            <legend>Your account</legend>
+            <div class="field-row">
+              <div class="field"><label for="signup-name">Your name</label><input id="signup-name" type="text" autocomplete="name" required></div>
+              <div class="field"><label for="signup-email">Email</label><input id="signup-email" type="email" autocomplete="email" required></div>
+            </div>
+            <div class="field"><label for="signup-password">Password <span class="muted">(at least 8 characters)</span></label><input id="signup-password" type="password" autocomplete="new-password" minlength="8" required></div>
+            <p class="age-rule"><strong>You must be 18 or older</strong> to use TrustyTalker.</p>
+            <label class="check check-strong"><input type="checkbox" id="signup-adult" required> <span>I am 18 years of age or older</span></label>
+            <label class="check check-strong"><input type="checkbox" id="signup-terms" required> <span>I will use TrustyTalker as a reviewer, with fictional examples only (never real conversations)</span></label>
+          </fieldset>
+
+          <fieldset class="wizard-step" data-step="2" hidden>
+            <legend>Which group are you in?</legend>
+            <div class="group-cards" id="signup-group">
+              <label class="role-option"><input type="radio" name="signup-group" value="hcp"><span class="role-text"><strong>Healthcare provider</strong><span class="role-desc">Doctor, nurse, therapist, social worker, counsellor, peer support worker or recovery coach.</span></span></label>
+              <label class="role-option"><input type="radio" name="signup-group" value="lived"><span class="role-text"><strong>Person with lived or living experience</strong><span class="role-desc">Someone who has used, or is using, substance use or mental health supports.</span></span></label>
+              <label class="role-option"><input type="radio" name="signup-group" value="admin"><span class="role-text"><strong>Admin team (internal reviewer)</strong><span class="role-desc">MCRC or JARA team member: research, engineering, clinical lead or management.</span></span></label>
+            </div>
+            <div class="group-block" data-group="hcp" hidden>
+              <fieldset class="sub"><legend>What is your role at the health setting where you work? <span class="muted">(select all that apply)</span></legend><label class="check"><input type="checkbox" name="hcp-role" value="Licensed healthcare provider (e.g., physician, nurse)"> <span>Licensed healthcare provider (e.g., physician, nurse)</span></label>
+<label class="check"><input type="checkbox" name="hcp-role" value="Licensed mental health provider (e.g., psychologist, therapist, social worker)"> <span>Licensed mental health provider (e.g., psychologist, therapist, social worker)</span></label>
+<label class="check"><input type="checkbox" name="hcp-role" value="Substance use counsellor"> <span>Substance use counsellor</span></label>
+<label class="check"><input type="checkbox" name="hcp-role" value="Peer support worker"> <span>Peer support worker</span></label>
+<label class="check"><input type="checkbox" name="hcp-role" value="Recovery coach"> <span>Recovery coach</span></label>
+<label class="check"><input type="checkbox" name="hcp-role" value="Other"> <span>Other</span></label></fieldset>
+              <fieldset class="sub"><legend>Which locations do you provide services at? <span class="muted">(optional)</span></legend><label class="check"><input type="checkbox" name="hcp-site" value="Our House Addiction Recovery Centre (Edmonton)"> <span>Our House Addiction Recovery Centre (Edmonton)</span></label>
+<label class="check"><input type="checkbox" name="hcp-site" value="Alberta Hospital Edmonton - Unit 12A, Young Adult Inpatient Psychiatry"> <span>Alberta Hospital Edmonton - Unit 12A, Young Adult Inpatient Psychiatry</span></label>
+<label class="check"><input type="checkbox" name="hcp-site" value="Young Adult Services (YAS) Outpatient Clinic (Edmonton)"> <span>Young Adult Services (YAS) Outpatient Clinic (Edmonton)</span></label>
+<label class="check"><input type="checkbox" name="hcp-site" value="Rapid Access Addiction Medicine Clinic (Calgary)"> <span>Rapid Access Addiction Medicine Clinic (Calgary)</span></label>
+<label class="check"><input type="checkbox" name="hcp-site" value="Boyle Street Community Services (Edmonton)"> <span>Boyle Street Community Services (Edmonton)</span></label>
+<label class="check"><input type="checkbox" name="hcp-site" value="Catalyst Health (Johnson City, TN, USA)"> <span>Catalyst Health (Johnson City, TN, USA)</span></label>
+<label class="check"><input type="checkbox" name="hcp-site" value="None of the above"> <span>None of the above</span></label></fieldset>
+              <fieldset class="sub"><legend>Which age groups do you mainly support? <span class="muted">(optional)</span></legend><label class="check"><input type="checkbox" name="hcp-ages" value="Youth (under 18)"> <span>Youth (under 18)</span></label>
+<label class="check"><input type="checkbox" name="hcp-ages" value="Emerging adults (18–24)"> <span>Emerging adults (18–24)</span></label>
+<label class="check"><input type="checkbox" name="hcp-ages" value="Young adults (25–34)"> <span>Young adults (25–34)</span></label>
+<label class="check"><input type="checkbox" name="hcp-ages" value="Middle-aged adults (35–54)"> <span>Middle-aged adults (35–54)</span></label>
+<label class="check"><input type="checkbox" name="hcp-ages" value="Older adults (55+)"> <span>Older adults (55+)</span></label></fieldset>
+            </div>
+            <div class="group-block" data-group="lived" hidden>
+              <fieldset class="sub"><legend>How would you describe your current situation? <span class="muted">(optional, select all that apply)</span></legend><label class="check"><input type="checkbox" name="lived-now" value="Actively trying to reduce or stop use"> <span>Actively trying to reduce or stop use</span></label>
+<label class="check"><input type="checkbox" name="lived-now" value="Considering making a change"> <span>Considering making a change</span></label>
+<label class="check"><input type="checkbox" name="lived-now" value="In recovery"> <span>In recovery</span></label>
+<label class="check"><input type="checkbox" name="lived-now" value="Currently receiving treatment"> <span>Currently receiving treatment</span></label>
+<label class="check"><input type="checkbox" name="lived-now" value="Seeking information only"> <span>Seeking information only</span></label>
+<label class="check"><input type="checkbox" name="lived-now" value="Not sure"> <span>Not sure</span></label>
+<label class="check"><input type="checkbox" name="lived-now" value="Prefer not to answer"> <span>Prefer not to answer</span></label></fieldset>
+            </div>
+            <div class="group-block" data-group="admin" hidden>
+              <fieldset class="sub"><legend>What is your work on the team?</legend><label class="check"><input type="radio" name="admin-area" value="research"> <span>Research or evaluation</span></label>
+<label class="check"><input type="radio" name="admin-area" value="engineering"> <span>Engineering or development (builds JARA)</span></label>
+<label class="check"><input type="radio" name="admin-area" value="clinical"> <span>Clinical lead on the team (licensed clinician)</span></label>
+<label class="check"><input type="radio" name="admin-area" value="management"> <span>Management or administration</span></label>
+<label class="check"><input type="radio" name="admin-area" value="other"> <span>Other</span></label></fieldset>
+            </div>
+            <p class="role-line" id="signup-role-line" aria-live="polite"></p>
+          </fieldset>
+
+          <fieldset class="wizard-step" data-step="3" hidden>
+            <legend>Your background</legend>
+            <div class="field"><label for="bg-position">Current position <span class="muted" id="bg-position-opt"></span></label><input id="bg-position" type="text" autocomplete="organization-title" placeholder="For example: Registered nurse, Peer mentor, Research assistant"></div>
+            <div class="field-row">
+              <div class="field"><label for="bg-tenure">How long have you been in that position?</label><select id="bg-tenure"><option value="">Choose one</option><option>Less than 1 year</option><option>1 to 2 years</option><option>3 to 5 years</option><option>6 to 10 years</option><option>More than 10 years</option></select></div>
+              <div class="field"><label for="bg-experience">Experience in substance use or mental health</label><select id="bg-experience"><option value="">Choose one</option><option>None yet</option><option>Less than 1 year</option><option>1 to 2 years</option><option>3 to 5 years</option><option>6 to 10 years</option><option>More than 10 years</option></select></div>
+            </div>
+            <fieldset class="sub"><legend>Past experience <span class="muted">(optional, select all that apply)</span></legend><label class="check"><input type="checkbox" name="bg-past" value="Direct care in substance use or mental health services"> <span>Direct care in substance use or mental health services</span></label>
+<label class="check"><input type="checkbox" name="bg-past" value="Peer support or recovery coaching"> <span>Peer support or recovery coaching</span></label>
+<label class="check"><input type="checkbox" name="bg-past" value="Using substance use or mental health services myself"> <span>Using substance use or mental health services myself</span></label>
+<label class="check"><input type="checkbox" name="bg-past" value="Supporting a family member or friend"> <span>Supporting a family member or friend</span></label>
+<label class="check"><input type="checkbox" name="bg-past" value="Research or evaluation"> <span>Research or evaluation</span></label>
+<label class="check"><input type="checkbox" name="bg-past" value="Building or testing chatbots or AI tools"> <span>Building or testing chatbots or AI tools</span></label>
+<label class="check"><input type="checkbox" name="bg-past" value="Reviewing or rating conversations before"> <span>Reviewing or rating conversations before</span></label>
+              <div class="field"><label for="bg-past-other">Anything else? <span class="muted">(optional)</span></label><input id="bg-past-other" type="text" autocomplete="off"></div>
+            </fieldset>
+            <div class="field-row">
+              <div class="field"><label for="bg-region">Where are you based?</label><select id="bg-region"><option value="">Choose one</option><option>Edmonton area, Alberta</option><option>Calgary area, Alberta</option><option>Elsewhere in Alberta</option><option>Elsewhere in Canada</option><option>Tennessee, USA</option><option>Elsewhere in the USA</option><option>Outside Canada and the USA</option></select></div>
+              <div class="field"><label for="bg-setting">What type of setting?</label><select id="bg-setting"><option value="">Choose one</option><option>Urban/city</option><option>Small or medium population centre</option><option>Rural</option><option>Remote</option><option>Mix of settings</option></select></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label for="bg-capacity">How much time could you give to reviewing?</label><select id="bg-capacity"><option value="">Choose one</option><option>Less than 1 hour a week</option><option>1 to 2 hours a week</option><option>3 to 5 hours a week</option><option>More than 5 hours a week</option><option>Not sure yet</option></select></div>
+              <div class="field"><label for="bg-ai">How often do you use AI chatbots (e.g., ChatGPT)?</label><select id="bg-ai"><option value="">Choose one</option><option>Never</option><option>Rarely</option><option>Sometimes</option><option>Often</option><option>Very often</option><option>Unsure</option></select></div>
+            </div>
+          </fieldset>
+
+          <fieldset class="wizard-step" data-step="4" hidden>
+            <legend>About you <span class="muted">(optional)</span></legend>
+            <p class="muted small">Helps describe who reviewed. Saved only in this browser. The results you download include these answers and your name, never your email or password.</p>
+            <div class="field-row">
+              <div class="field"><label for="signup-age">Age</label><select id="signup-age"><option value="">Prefer not to answer</option><option>18 to 24</option><option>25 to 34</option><option>35 to 44</option><option>45 to 54</option><option>55 to 64</option><option>65 or older</option></select></div>
+              <div class="field"><label for="signup-gender">Gender identity</label><select id="signup-gender"><option value="">Prefer not to answer</option><option>Woman</option><option>Man</option><option value="self">Another identity (e.g., non-binary, Two-Spirit)</option></select></div>
+            </div>
+            <div class="field" id="signup-gender-self-wrap" hidden><label for="signup-gender-self">Please specify <span class="muted">(optional)</span></label><input id="signup-gender-self" type="text" autocomplete="off"></div>
+            <div class="field"><label for="signup-indigenous">Do you identify as an Indigenous person?</label><select id="signup-indigenous"><option value="">Prefer not to answer</option><option>First Nations</option><option>Métis</option><option>Inuit</option><option>No</option></select></div>
+          </fieldset>
+
+          <p class="form-error" id="signup-error" role="alert"></p>
+          <div class="wizard-nav">
+            <button type="button" class="secondary" id="wizard-back" hidden>← Back</button>
+            <button type="button" id="wizard-next">Next →</button>
+            <button type="submit" id="wizard-submit" hidden>Create account</button>
+          </div>
+        </form>
+        <div class="auth-panel" id="panel-guest" role="tabpanel" aria-labelledby="tab-guest" data-tab="guest" hidden>
+          <p>No account needed. You choose your role on the next page, and you can change it. Your answers are kept in this browser as <strong>Guest</strong>.</p>
+          <button id="guest-button" type="button">Continue as a guest</button>
+        </div>
+        <section class="verify-panel" id="verify-panel" hidden aria-labelledby="verify-heading">
+          <h3 id="verify-heading" tabindex="-1">Check your email</h3>
+          <p>We sent a verification link to <strong id="verify-email"></strong>. Open it to finish creating your account.</p>
+          <div class="verify-demo">
+            <p class="muted small">Demo: this page cannot send email, so the link is shown here. In JARA, MCRC's server would email it.</p>
+            <a href="#overview" id="verify-link" class="button-link">Verify my email (demo link)</a>
+          </div>
+          <button type="button" class="link-button" id="verify-back">Back to log in</button>
+        </section>
+        <p class="auth-note">Demo sign-in: accounts are saved only in this browser, on this computer, and the password is stored as a protected hash. Do not use a password you use anywhere else. Real accounts would come from MCRC.</p>
+      </section>
+    </div>
+
+    <!-- VISUAL GUIDE: step by step with pictures -->
+    <div class="view" data-view="guide" id="view-guide" hidden>
+      <div class="view-bar"><a class="back-button" href="#overview">Back to Home</a></div>
+      <section aria-labelledby="guide-main">
+        <h2 id="guide-main">Review replies in 7 steps</h2>
+        <ol class="guide-steps">
+        <li class="guide-step" id="guide-step-1">
+          <div class="guide-text"><span class="guide-num" aria-hidden="true">1</span><h3>Sign in, sign up or continue as a guest</h3><p>Sign up once in 4 short steps (you must be 18 or older), then verify your email. Already have an account? Log in. Just looking? Continue as a guest.</p></div>
+          <img src="guide/guide-0-signin.png" alt="The Welcome page with three tabs: Log in, Sign up and Continue as a guest. The Log in tab shows email and password boxes and a Log in button." loading="lazy" width="640">
+        </li>
+        <li class="guide-step" id="guide-step-2">
+          <div class="guide-text"><span class="guide-num" aria-hidden="true">2</span><h3>Check who you are reviewing as</h3><p>Your sign-up decides your role, shown on Home. Guests pick a role there. You only get replies your role is qualified to judge, and safety problems go to clinicians only.</p></div>
+          <img src="guide/guide-1-role.png" alt="The Who are you? box with four choices: Clinician, Peer support, Researcher and JARA developer. Peer support is selected." loading="lazy" width="640">
+        </li>
+        <li class="guide-step" id="guide-step-3">
+          <div class="guide-text"><span class="guide-num" aria-hidden="true">3</span><h3>Press Start reviewing</h3><p>TrustyTalker gives you 5 flagged replies, picked at random. If you are a clinician, safety problems come first.</p></div>
+          <img src="guide/guide-2-start.png" alt="The start box saying how many flagged replies are waiting, with a blue Start reviewing button." loading="lazy" width="640">
+        </li>
+        <li class="guide-step" id="guide-step-4">
+          <div class="guide-text"><span class="guide-num" aria-hidden="true">4</span><h3>Read the flagged reply</h3><p>The conversation is on the left. The reply with the red outline was flagged, and the exact words are highlighted.</p></div>
+          <img src="guide/guide-3-read.png" alt="A conversation between a person and JARA. The last JARA reply has a red outline and a This reply was flagged label." loading="lazy" width="640">
+        </li>
+        <li class="guide-step" id="guide-step-5">
+          <div class="guide-text"><span class="guide-num" aria-hidden="true">5</span><h3>Answer: is this a real problem?</h3><p>Read the plain question, then press Yes, No or Not sure. Write one sentence on why, then press Next.</p></div>
+          <img src="guide/guide-4-answer.png" alt="The decision panel: the problem name, a short question to guide you, and big Yes, No and Not sure buttons, with Yes chosen and a reason typed in." loading="lazy" width="640">
+        </li>
+        <li class="guide-step" id="guide-step-6">
+          <div class="guide-text"><span class="guide-num" aria-hidden="true">6</span><h3>Change your mind, skip or stop</h3><p>Press Clear my answer to undo. Press Skip for now to come back later. Press Stop for now any time: your answers are kept in this browser.</p></div>
+          <img src="guide/guide-5-change.png" alt="The bottom of the decision panel with the Clear my answer link, the Previous and Next buttons, and the Stop for now link." loading="lazy" width="640">
+        </li>
+        <li class="guide-step" id="guide-step-7">
+          <div class="guide-text"><span class="guide-num" aria-hidden="true">7</span><h3>Download your results</h3><p>On Results you see your answers. Press Download results and Download regression tests, and send both files to the JARA team.</p></div>
+          <img src="guide/guide-6-results.png" alt="The Results page with four counts (Yes, No, Not sure, Still to decide) and the Download results and Download regression tests buttons." loading="lazy" width="640">
+        </li>
+        </ol>
+      </section>
+      <p class="guide-cta"><a class="button-link" href="#overview">I'm ready: go to Home</a></p>
+      <section aria-labelledby="guide-extra">
+        <h2 id="guide-extra">Other things you can do</h2>
+        <ol class="guide-steps" start="8">
+        <li class="guide-step" id="guide-step-8">
+          <div class="guide-text"><span class="guide-num" aria-hidden="true">8</span><h3>Look through every case</h3><p>Press Browse cases at the top right. Click a case name to read it in the same review layout.</p></div>
+          <img src="guide/guide-7-browse.png" alt="The All cases table listing each case, its example, the person's goal and what the checks flagged." loading="lazy" width="640">
+        </li>
+        <li class="guide-step" id="guide-step-9">
+          <div class="guide-text"><span class="guide-num" aria-hidden="true">9</span><h3>See what JARA users disliked</h3><p>On Browse cases, press Try it: give a thumbs down. A 👎 on a JARA reply sends the conversation to TrustyTalker for review.</p></div>
+          <img src="guide/guide-8-thumbs.png" alt="A demo JARA chat with thumbs up and thumbs down buttons under each reply. One reply has been given a thumbs down." loading="lazy" width="640">
+        </li>
+        <li class="guide-step" id="guide-step-10">
+          <div class="guide-text"><span class="guide-num" aria-hidden="true">10</span><h3>Add your own case</h3><p>Press Add your own case. Type a fictional conversation, one line each, starting with P: for the person and J: for JARA.</p></div>
+          <img src="guide/guide-9-add.png" alt="The Add your own case form with a title, the person's goal and readiness, and a box for the conversation." loading="lazy" width="640">
+        </li>
+        </ol>
+      </section>
+    </div>
+
+    <!-- 1. OVERVIEW: what to do, in three stages (like a review summary page) -->
+    <div class="view" data-view="overview" id="view-overview">
+      <div class="welcome-banner" id="welcome-banner" role="status" hidden>
+        <p id="welcome-banner-text"></p>
+        <button type="button" class="link-button" id="welcome-banner-close">Close</button>
       </div>
+      <aside class="page-help" aria-labelledby="help-overview">
+        <h2 class="page-help-title" id="help-overview">How to use this page</h2>
+        <ol>
+          <li id="help-role-step">Choose <strong>who you are</strong>. You only get replies your role is qualified to judge.</li>
+          <li>Press <strong>Start reviewing</strong> and answer for each reply: <strong>is it a real problem?</strong></li>
+          <li>Go to <strong>Results</strong> and download your work.</li>
+        </ol>
+        <p class="page-help-more"><a href="#guide" data-guide-step="1">New here? See the step-by-step guide with pictures →</a></p>
+      </aside>
+      <section class="role-card" aria-labelledby="role-heading">
+        <h2 id="role-heading" tabindex="-1">Who are you?</h2>
+        <div class="role-options" id="role-options" role="radiogroup" aria-labelledby="role-heading"></div>
+      </section>
+      <div class="start-card">
+        <p id="start-text">Replies are waiting for your decision.</p>
+        <a id="start-button" class="button-link start-button" href="#review">Start reviewing</a>
+      </div>
+      <p class="browse-line">Want to look around first? <a href="#cases">Browse all cases</a> or <a href="#cases" id="overview-add-case">add your own case</a>.</p>
+      <section class="flow-section" aria-labelledby="flow-heading">
+        <h2 id="flow-heading">What happens to each conversation</h2>
+        <p class="muted">The numbers update as you review.</p>
+        <div id="flow-overview"></div>
+      </section>
+    </div>
+
+    <!-- 2. REVIEW: one finding at a time with big Yes / No / Not sure buttons -->
+    <div class="view" data-view="review" id="view-review" hidden>
+      <aside class="page-help page-help-compact" aria-labelledby="help-review">
+        <h2 class="page-help-title" id="help-review">How to use this page</h2>
+        <ol>
+          <li>Read the conversation on the left. The flagged reply has a <strong>red outline</strong>.</li>
+          <li>Choose <strong>Yes</strong>, <strong>No</strong> or <strong>Not sure</strong>.</li>
+          <li>Say why, then press <strong>Next</strong>. Not sure yet? Press <strong>Skip for now</strong> and come back later.</li>
+        </ol>
+        <p class="page-help-more"><a href="#guide" data-guide-step="4">See this step with pictures →</a></p>
+      </aside>
+      <div id="review-screen"></div>
+    </div>
+
+    <!-- 3. RESULTS: the flow diagram, every decision and the downloads -->
+    <div class="view" data-view="results" id="view-results" hidden>
+      <aside class="page-help" aria-labelledby="help-results">
+        <h2 class="page-help-title" id="help-results">How to use this page</h2>
+        <ol>
+          <li>Check the table. Press <strong>Change</strong> to fix any decision.</li>
+          <li>Press <strong>Download results</strong>. Your answers are kept in this browser until then.</li>
+          <li>Send the files to the JARA team.</li>
+        </ol>
+        <p class="page-help-more"><a href="#guide" data-guide-step="7">See this step with pictures →</a></p>
+      </aside>
+      <section class="results-actions" aria-labelledby="results-heading">
+        <div>
+          <h2 id="results-heading">Your decisions</h2>
+          <p class="muted" id="results-summary"></p>
+        </div>
+        <div class="actions">
+          <span class="export-group">
+            <label for="export-format" class="visually-hidden">File format</label>
+            <select id="export-format"><option value="json">JSON</option><option value="csv">CSV (Excel)</option></select>
+            <button id="export-all" type="button">Download results</button>
+          </span>
+          <button id="export-regressions" class="secondary" type="button">Download regression tests</button>
+          <input id="import-file" type="file" accept="application/json,.json" multiple hidden>
+        </div>
+      </section>
+      <p class="import-line"><button id="import-results" class="link-button" type="button" aria-describedby="import-help">Load a results file or a JARA feedback case</button></p>
+      <p id="import-help" class="visually-hidden">Loads one or more files: results downloaded earlier (decisions are combined) or a JARA feedback case. The files stay on this computer.</p>
+      <p id="import-status" class="import-status" role="status" aria-live="polite"></p>
+      <div id="result-tiles" class="result-tiles"></div>
+      <section aria-labelledby="decisions-heading">
+        <h2 id="decisions-heading">Every finding</h2>
+        <div id="decision-table"></div>
+      </section>
+    </div>
+
+    <!-- BROWSE: all cases side by side (for exploring and adding cases) -->
+    <div class="view" data-view="cases" id="view-cases" hidden>
+      <aside class="page-help" aria-labelledby="help-cases">
+        <h2 class="page-help-title" id="help-cases">How to use this page</h2>
+        <ol>
+          <li>See what <strong>JARA users disliked</strong>, or try giving a thumbs down yourself.</li>
+          <li>Click a <strong>case name</strong> to read both example conversations.</li>
+          <li>Press <strong>Add your own case</strong> to test a fictional conversation.</li>
+        </ol>
+        <p class="page-help-more"><a href="#guide" data-guide-step="8">See this step with pictures →</a></p>
+      </aside>
+    <section class="jara-inbox" aria-labelledby="inbox-heading">
+      <div class="picker-head">
+        <div>
+          <h2 id="inbox-heading">Thumbs down from JARA users</h2>
+          <p class="muted">When someone using JARA dislikes a reply, it arrives here as a case and goes into the review, even if no check flagged it.</p>
+        </div>
+        <div class="picker-actions">
+          <button id="jara-demo-open" type="button" aria-haspopup="dialog">Try it: give a thumbs down</button>
+          <button id="jara-load" class="secondary" type="button">Load from JARA</button>
+        </div>
+      </div>
+      <ul id="inbox-list" class="inbox-list"></ul>
     </section>
     <section class="case-picker" id="cases" aria-labelledby="case-heading">
       <div class="picker-head">
         <div>
           <h2 id="case-heading">All cases</h2>
-          <p class="muted">Click a case to open it below. Every example is compared with the team's answer key.</p>
+          <p class="muted">Open a case to read both example conversations side by side.</p>
         </div>
         <div class="picker-actions">
           <button id="add-case" class="add-case" type="button" aria-haspopup="dialog">Add your own case</button>
-          <button id="run-all" type="button">Run all cases</button>
         </div>
       </div>
       <div id="case-grid"></div>
     </section>
+    <details class="accuracy-section">
+      <summary>How accurate are the checks?</summary>
+      <div id="benchmark-panel" class="benchmark-panel" aria-live="polite"></div>
+    </details>
     </div>
     <div class="view workspace" data-view="conversation" id="view-conversation" hidden>
       <div class="view-bar">
         <a class="back-button" href="#cases">Back to all cases</a>
-        <a class="view-next" href="#findings">Go to findings</a>
+        <div class="case-switch">
+          <label for="case-select">Case</label>
+          <select id="case-select"></select>
+          <span id="case-switch-status" class="visually-hidden" role="status"></span>
+        </div>
+        <a class="view-next" href="#review" id="review-this-case">Review this case</a>
       </div>
+      <aside class="page-help page-help-compact" aria-labelledby="help-conversation">
+        <h2 class="page-help-title" id="help-conversation">How to use this page</h2>
+        <ol>
+          <li>Compare <strong>Example A</strong> and <strong>Example B</strong>: which reply follows what the person asked?</li>
+          <li>Replies with a <strong>red outline</strong> were flagged. Click the highlighted words to review them.</li>
+          <li>Press <strong>Review this case</strong> when you are ready to decide.</li>
+        </ol>
+        <p class="page-help-more"><a href="#guide" data-guide-step="4">See this step with pictures →</a></p>
+      </aside>
+
       <section class="comparison" id="comparison" aria-labelledby="comparison-heading">
         <div class="case-details" aria-label="About this case">
           <div class="case-details-text">
@@ -118,7 +422,6 @@
         </div>
         <div class="comparison-heading">
           <h2 id="comparison-heading">Two possible conversations</h2>
-          <p>Read both. Which reply follows the person's request?</p>
           <div id="summary-bar" class="summary-bar" role="status" aria-live="polite" hidden></div>
         </div>
         <div class="variants" id="variants"></div>
@@ -126,7 +429,7 @@
     </div>
     <div class="view" data-view="findings" id="view-findings" hidden>
       <div class="view-bar">
-        <a class="back-button" href="#cases">Back to all cases</a>
+        <a class="back-button" href="#overview">Back to Home</a>
         <a class="view-next view-prev" href="#conversation">Back to the conversation</a>
       </div>
     <section class="check-results" id="findings-section" aria-labelledby="checks-heading">
@@ -134,14 +437,10 @@
         <div><h2 id="checks-heading">Findings to review</h2><p id="coverage"></p></div>
         <div class="actions">
           <button id="run-checks" class="secondary" type="button">Run checks again</button>
-          <button id="import-results" class="secondary" type="button" aria-describedby="import-help">Import findings</button>
-          <button id="export-results" class="secondary" type="button" disabled>Export findings</button>
-          <input id="import-file" type="file" accept="application/json,.json" hidden>
+          <button id="export-results" class="secondary" type="button" disabled>Export this case</button>
         </div>
       </div>
-      <p id="import-help" class="visually-hidden">Loads a findings file you exported earlier and restores its reviewer decisions. The file stays on this computer.</p>
       <p id="check-status" role="status" aria-live="polite">Pick a case to see its findings.</p>
-      <p id="import-status" class="import-status" role="status" aria-live="polite"></p>
       <div id="review-progress" class="review-progress" aria-live="polite" hidden></div>
       <div id="finding-filters" class="grid-filters finding-filters" role="group" aria-label="Show findings" hidden></div>
       <p id="findings-empty" class="muted case-list-empty" hidden></p>
@@ -149,6 +448,39 @@
       <div id="judge-compare" class="judge-compare" aria-live="polite"></div>
     </section>
     </div>
+    <dialog id="account-dialog" class="add-case-dialog account-dialog" aria-labelledby="account-title">
+      <div class="dialog-head"><h2 id="account-title">Edit your account</h2></div>
+      <div class="field"><label for="acct-name">Your name</label><input id="acct-name" type="text" autocomplete="name"></div>
+      <p class="account-group"><span class="muted">Group and role (set at sign-up, cannot be changed):</span> <strong id="acct-group"></strong></p>
+      <div id="account-fields"></div>
+      <p class="form-error" id="account-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="account-cancel" class="secondary" type="button">Cancel</button>
+        <button id="account-save" type="button">Save changes</button>
+      </div>
+    </dialog>
+    <p id="account-status" class="visually-hidden" role="status" aria-live="polite"></p>
+    <dialog id="jara-demo" class="add-case-dialog jara-demo" aria-labelledby="jara-demo-title" aria-describedby="jara-demo-help">
+      <div class="dialog-head">
+        <h2 id="jara-demo-title">JARA (demo)</h2>
+        <button id="jara-demo-close" class="dialog-close secondary" type="button">Close</button>
+      </div>
+      <p id="jara-demo-help" class="muted">A fictional conversation. Give a JARA reply a thumbs down to send it to TrustyTalker, the way the real JARA app would.</p>
+      <div id="jara-chat" class="jara-chat"></div>
+      <div id="jara-feedback" class="jara-feedback" hidden>
+        <label for="jara-comment">What was wrong with this reply? (optional)</label>
+        <textarea id="jara-comment" rows="2" placeholder="For example: I said I only want to cut down."></textarea>
+        <div class="dialog-actions">
+          <button id="jara-cancel" class="secondary" type="button">Cancel</button>
+          <button id="jara-send" type="button">Send to TrustyTalker</button>
+        </div>
+      </div>
+      <p id="jara-status" class="import-status" role="status" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button id="jara-another" class="secondary" type="button">Another conversation</button>
+        <button id="jara-review" type="button" hidden>Review it now</button>
+      </div>
+    </dialog>
     <dialog id="add-case-dialog" class="add-case-dialog" aria-labelledby="add-case-title" aria-describedby="add-case-help">
       <div class="dialog-head">
         <h2 id="add-case-title">Add your own case</h2>
@@ -184,8 +516,32 @@
         <button id="add-save" type="button">Add case and run checks</button>
       </div>
     </dialog>
-    <footer>Local files only. There is no account, database or AI connection in this starter.</footer>
+    <footer><a href="#guide">How to use TrustyTalker (visual guide)</a> · Fictional examples only, not live JARA replies or clinical advice. Runs on this computer: no server, database or AI connection.</footer>
   </main>
+  <aside class="mascot" id="mascot" aria-label="Getting started helper" hidden>
+    <div class="mascot-bubble" id="mascot-bubble" hidden>
+      <p class="mascot-step" id="mascot-step"></p>
+      <p class="mascot-text" id="mascot-text" aria-live="polite"></p>
+      <div class="mascot-actions">
+        <button type="button" class="secondary" id="mascot-back">Back</button>
+        <button type="button" id="mascot-next">Next</button>
+      </div>
+      <button type="button" class="link-button mascot-close" id="mascot-close">Hide tips</button>
+    </div>
+    <button type="button" class="mascot-bot" id="mascot-bot" aria-expanded="false" aria-controls="mascot-bubble" aria-label="Getting started tips from Trusty">
+      <svg viewBox="0 0 80 80" aria-hidden="true" focusable="false">
+        <line class="m-antenna" x1="36" y1="14" x2="36" y2="5"></line>
+        <circle class="m-bulb" cx="36" cy="5" r="4"></circle>
+        <path class="m-body" d="M14 14h44a10 10 0 0 1 10 10v26a10 10 0 0 1-10 10H34l-12 10v-10h-8A10 10 0 0 1 4 50V24a10 10 0 0 1 10-10z"></path>
+        <rect class="m-face" x="13" y="23" width="46" height="26" rx="13"></rect>
+        <circle class="m-eye" cx="27" cy="35" r="4"></circle>
+        <circle class="m-eye" cx="45" cy="35" r="4"></circle>
+        <path class="m-smile" d="M28 42q8 6 16 0"></path>
+        <path class="m-arm" d="M66 30l10-14"></path>
+        <circle class="m-hand" cx="76" cy="15" r="3.5"></circle>
+      </svg>
+    </button>
+  </aside>
   <noscript>This starter needs JavaScript enabled. Open index.html in a normal browser window.</noscript>
 </body>
 </html>
