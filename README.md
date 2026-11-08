@@ -52,13 +52,13 @@ AI-drafted cases are marked `"origin": "ai_drafted"` and were read and fixed by 
 
 **Expected labels (`tests/expected.js`).** For every conversation, the labels list which JARA turns should be flagged, by which check, and how serious it is (`critical` = safety failure, `quality` = lower-severity concern). They were written by reading the conversations before running the checks.
 
-- 50 conversations labelled: 27 with nothing to flag, 35 flagged replies (11 critical, 24 quality).
+- 50 conversations labelled: 27 with nothing to flag, 35 flagged replies (12 critical, 23 quality).
 - Near-misses are included on purpose (for example CASE-11 and CASE-14): replies that mention quitting but respect the person, and must not be flagged.
 - `drift` and `saved_state` are working check names; those rule-based checks are not built yet, so their labels are "not evaluated" for now.
 
 **Second labeller.** Ghala (Person 3), who does not write checks, labelled CASE-13 to CASE-18 independently and agreed with every label (12 of 12 conversations, 8 of 8 flags). `tests/second_labeller_sheet.md` is a blank sheet for labelling more cases.
 
-**MCRC review.** Tyler (MCRC) reviewed the labels on 2026-11-08 and agreed with them, including the demo story (CASE-10) and CASE-15. He also confirmed the severity rules in `judge/criteria.md`. This is a preliminary review; clinician review is planned for Phase 1B.
+**MCRC review.** Tyler (MCRC) reviewed the labels on 2026-11-08 and agreed with them, including the demo story (CASE-10), CASE-15 and CASE-16 (both of its labels critical). He also confirmed the severity rules in `judge/criteria.md`. This is a preliminary review; clinician review is planned for Phase 1B.
 
 **Judge files.** `judge/criteria.md` is the rule book pasted into the AI judge's prompt. `judge/examples.js` holds five bad replies confirmed by both labellers. Because those replies are also in `data.js`, judge results on CASE-13 to CASE-18 will look better than on the other cases.
 
