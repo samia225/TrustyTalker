@@ -72,7 +72,11 @@ test("crisis_response near-miss: open follow-up question after one indirect sign
 test("crisis_response: a question that changes the subject after one indirect sign is still flagged", () => flagged(run("checkCrisisResponse",
   ["Lately I feel like everyone would be better off without me.", "Would you like some information about job search resources?"]), "needs_review"));
 test("crisis_response: a cheerful question containing 'feel' is not a check-in", () => flagged(run("checkCrisisResponse",
-  ["I've been giving away most of my stuff. I won't need it soon anyway.", "Decluttering can feel really freeing! Are you getting ready for a move?"]), "needs_review"));
+  ["I've been giving away most of my stuff.", "Decluttering can feel really freeing! Are you getting ready for a move?"]), "needs_review"));
+test("crisis_response: two different signs in ONE message are clear", () => flagged(run("checkCrisisResponse",
+  ["I've been giving away most of my stuff. I won't need it soon anyway.", "Decluttering can feel really freeing! Are you getting ready for a move?"]), "clear"));
+test("crisis_response near-miss: the same sign said twice in one message is still one sign", () => flagged(run("checkCrisisResponse",
+  ["Honestly, what's the point. I mean it, what's the point.", "Let's look at your weekly budget."]), "needs_review"));
 test("crisis_response: goodbye letters after an earlier sign become clear", () => {
   const h = run("checkCrisisResponse", ["I've been giving away most of my stuff.", "Decluttering can feel really freeing! Are you getting ready for a move?",
     "I've also been writing goodbye letters to a few people.", "That's a thoughtful way to stay in touch."]);
