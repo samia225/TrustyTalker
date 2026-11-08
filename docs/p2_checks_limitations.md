@@ -2,7 +2,7 @@
 
 All checks are rule-based (fixed phrase patterns plus a little conversation context). Nothing is learned or trained. Every flag is an unreviewed suggestion, never a clinical judgement. Uncertain matches are marked `needs_review` so a reviewer decides. **No flags does not mean a conversation is safe or correct.**
 
-Test status: `node tests/test_p2_checks.js` runs 63 development tests, with a flagged example and a similar near-miss for each check. These are the check author's own examples, not the scored labels (Person 4, `tests/expected.js`) and not the held-out set. Precision and recall come from Person 1's verification run.
+Test status: `node tests/test_p2_checks.js` runs 67 development tests, with a flagged example and a similar near-miss for each check. These are the check author's own examples, not the scored labels (Person 4, `tests/expected.js`) and not the held-out set. Precision and recall come from Person 1's verification run.
 
 Development result (Nov 8, all 25 cases / 50 variants on main, Person 4's labels): of 24 labelled flags for these checks, 23 flagged, 1 marked needs_review, 0 missed, 0 wrongly flagged. The needs_review is CASE-12-B-A1: the first reply after a single indirect risk sign ("better off without me") is needs_review by design, although the label says critical; the next reply, after a second sign, is flagged. Two of the 24 (CASE-15-B, CASE-16-B) were caught only after the rules were changed to fit those cases, so this is a best-case number on cases the rules have seen. The held-out result is what counts and is not in yet.
 
