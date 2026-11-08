@@ -23,9 +23,51 @@ test("Settings are temperature 0 with JSON output", () => {
   assert.equal(judge.SETTINGS.output, "json");
 });
 
-test("--live refuses: the model call is not enabled", () => {
-  assert.throws(() => judge.run(["--live"]), /pending Vatsal/);
+const asyncTests = [];
+function testAsync(name, fn) { asyncTests.push([name, fn]); }
+
+testAsync("--live without a key stops with a clear message and calls nothing", async () => {
+  let called = false;
+  await assert.rejects(judge.runLive(["--live"], { env: {}, fetchImpl: async () => { called = true; } }), /OPENAI_API_KEY/);
+  assert.equal(called, false);
 });
+
+testAsync("--live with a fake model: real-run status, model recorded, key never written", async () => {
+  const KEY = "sk-test-SECRET-123";
+  const seen = [];
+  const fakeFetch = async (url, options) => {
+    const body = JSON.parse(options.body);
+    seen.push({ url, auth: options.headers.Authorization, body });
+    const turnId = /\[(CASE-01-B-A1)\]/.test(body.messages[0].content) ? "CASE-01-B-A1" : null;
+    const content = JSON.stringify({ findings: turnId ? [{ turn_id: turnId, check: "goal_alignment", quote: "You need to quit.",
+      explanation: "Pushes quitting.", severity: "quality", fix_layer: "prompt" }] : [], unsure: [] });
+    return { ok: true, status: 200, json: async () => ({ model: "fake-model-1", usage: { total_tokens: 100 }, choices: [{ message: { content } }] }) };
+  };
+  const { results } = await quietlyAsync(() => judge.runLive(["--live", "--limit", "4"], { env: { OPENAI_API_KEY: KEY }, fetchImpl: fakeFetch }));
+  assert.equal(seen.length, 4, "--limit caps the number of calls");
+  assert.equal(seen[0].body.temperature, 0);
+  assert.equal(seen[0].body.response_format.type, "json_object");
+  assert.equal(seen[0].auth, "Bearer " + KEY);
+  assert.equal(results.status, "judge_run");
+  assert.equal(results.settings.model, "fake-model-1");
+  assert.equal(results.tokens_used, 400);
+  const out = fs.readFileSync(OUT, "utf8");
+  assert.ok(!out.includes(KEY), "the key must never be written to judge_results.js");
+  const raw = path.join(__dirname, results.source_file);
+  assert.ok(!fs.readFileSync(raw, "utf8").includes(KEY), "nor to the saved raw outputs");
+  fs.rmSync(raw, { force: true });
+});
+
+testAsync("--live stops at our own token limit", async () => {
+  let calls = 0;
+  const fakeFetch = async () => { calls++; return { ok: true, status: 200, json: async () => ({ usage: { total_tokens: 600 }, choices: [{ message: { content: "{\"findings\":[],\"unsure\":[]}" } }] }) }; };
+  const { results } = await quietlyAsync(() => judge.runLive(["--live"], { env: { OPENAI_API_KEY: "k", JUDGE_MAX_TOTAL_TOKENS: "1000" }, fetchImpl: fakeFetch }));
+  assert.equal(calls, 2);
+  assert.match(results.note, /Stopped early: token limit/);
+  fs.rmSync(path.join(__dirname, results.source_file), { force: true });
+});
+
+async function quietlyAsync(fn) { const log = console.log; console.log = () => {}; try { return await fn(); } finally { console.log = log; } }
 
 test("Dry run builds one prompt per conversation and writes nothing", () => {
   const before = fs.existsSync(OUT) ? fs.readFileSync(OUT, "utf8") : null;
@@ -107,6 +149,12 @@ test("--placeholder records 'not run' and does NOT define JUDGE_RESULTS (page sh
   assert.equal(window.JUDGE_STATUS.status, "not_run");
 });
 
-// Leave the folder as it was: the pipeline test output must not be mistaken for a real run.
-if (hadResults === null) fs.rmSync(OUT, { force: true }); else fs.writeFileSync(OUT, hadResults);
-console.log("\n" + passed + " judge tests passed (no model was called).");
+(async () => {
+  try {
+    for (const [name, fn] of asyncTests) { await fn(); passed++; console.log("OK  " + name); }
+  } finally {
+    // Leave the folder as it was: test output must not be mistaken for a real run.
+    if (hadResults === null) fs.rmSync(OUT, { force: true }); else fs.writeFileSync(OUT, hadResults);
+  }
+  console.log("\n" + passed + " judge tests passed (no real model was called).");
+})().catch(error => { console.error(error); process.exitCode = 1; });

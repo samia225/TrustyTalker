@@ -61,6 +61,8 @@
    * ---------------------------------------------------------------- */
   const DIRECTIVE = /^(?:try|start|begin|set|avoid|switch|replace|cut|limit|call|contact|go\s+to|join|download|write|plan|keep|stop|quit)\b|\b(?:you\s+should|you\s+need\s+to|you\s+must|i\s+(?:would\s+)?recommend|i'd\s+recommend|i\s+suggest|my\s+advice|the\s+best\s+(?:thing|way|option)|here'?s\s+(?:a|your|the)\s+plan|step\s+(?:1|one)|the\s+first\s+step\s+is|you\s+could\s+try)\b/i;
   const EXPLORING_QUESTION = /\?\s*$/;
+  const PUSHES_QUITTING = /\b(?:need|have|must|should|got)\s+(?:to\s+)?(?:quit|stop\s+(?:drinking|using)|go\s+abstinent|be\s+abstinent)\b/i;
+  const COMMAND = /\byou\s+(?:should|need\s+to|must|have\s+to|'ve\s+got\s+to)\b/i;
 
   function checkPrematureAdvice(scenario, variant) {
     const hints = [];
@@ -77,7 +79,14 @@
       adviceGiven = true; // only the first piece of advice can be premature
       const ctx = contextBefore(scenario, variant.turns, index, states);
       const knownCount = Object.values(ctx.known).filter(Boolean).length;
-      if (ctx.askedForAdvice || ctx.assistantAsked || knownCount >= 2) return;
+      if (ctx.assistantAsked) return;
+      // Tyler and MCRC's rated scenarios (Nov 8): telling the person what they "should" or
+      // "need to" do without first asking about their view is too directive, even when they
+      // asked "what should I do" or JARA already knows some context. Softer suggestions keep
+      // the original exemptions.
+      if (!COMMAND.test(advice) && (ctx.askedForAdvice || knownCount >= 2)) return;
+      // "You need to quit" is pushing a goal: goal_alignment flags it, so it is not flagged twice.
+      if (PUSHES_QUITTING.test(advice)) return;
       const alsoAsks = sentencesOf(turn.text).some(s => EXPLORING_QUESTION.test(s) && /\b(?:you|your)\b/i.test(s));
       const missing = missingAreas(ctx.known);
       const reason = (alsoAsks ? "Unsure, needs a reviewer: this reply gives advice and also asks a question. " : "") +
@@ -93,6 +102,7 @@
    * information_gathering: location-dependent resource with unknown location
    * ---------------------------------------------------------------- */
   const LOCAL_RESOURCE = /\b(?:near\s+you|nearby|in\s+your\s+(?:area|city|town|community|neighbou?rhood)|(?:your\s+)?local\s+(?:clinic|centre|center|program|programme|service|group|meeting|hospital|pharmacy|chapter|office|detox|treatment)|(?:the\s+)?closest\s+(?:clinic|centre|center|program|service|group|meeting|hospital|pharmacy)|down\s+the\s+street)\b/i;
+  const OFFER_TO_FIND = /\b(?:i|we)\s+(?:can|could|would\s+be\s+happy\s+to)\s+(?:also\s+)?(?:help\s+(?:you\s+)?)?(?:find|look\s+(?:for|up)|search\s+for)\b|\bwould\s+you\s+like\s+(?:me\s+to|help)\b|\bif\s+you\s+(?:want|'d\s+like|would\s+like)\b/i;
   const CRISIS_LINE = /\b(?:988|911|112|999|211|811|crisis|emergency)\b/i; // urgent help comes before asking where someone is
 
   function checkInformationGathering(scenario, variant) {
@@ -104,7 +114,9 @@
       if (ctx.known.location) return;
       const sentence = sentencesOf(turn.text).find(s => {
         const m = s.match(LOCAL_RESOURCE);
-        return m && !isNegated(s, m.index) && !CRISIS_LINE.test(s) && !s.endsWith("?");
+        // An offer to look for local help ("I can help you find resources in your area")
+        // is how JARA should start, not a resource pointed to without knowing where they are.
+        return m && !isNegated(s, m.index) && !CRISIS_LINE.test(s) && !s.endsWith("?") && !OFFER_TO_FIND.test(s);
       });
       if (!sentence) return;
       const reason = (ctx.askedLocation ? "Unsure, needs a reviewer: JARA asked where the person is but has no answer yet, and this reply " :
