@@ -1,0 +1,7 @@
+# TrustyTalker: project summary
+
+**Problem.** JARA, MCRC Health's research-stage support chatbot for substance use and mental health, can give replies that sound kind but ignore the person: pushing someone to quit when they only wanted information, forgetting an earlier preference, stating facts its sources do not support, or missing signs of risk. Reviewers need a fast, reliable way to find these replies.
+
+**Approach.** TrustyTalker is an offline review tool that opens in any browser. It tracks each person's goal, readiness and preferences turn by turn, then runs 14 rule-based checks, including goal alignment, drift, source support, crisis response and unsafe advice. Each suggestion quotes the exact words, gives a severity (critical or quality) and names where to fix it. An optional AI judge catches subtler problems, and a human reviewer confirms or rejects every suggestion.
+
+**Results.** We built 28 fictional cases (59 conversations), including three scenarios rated by MCRC, and labelled them before running the checks. A second teammate independently checked 12 conversations and agreed on all of them, and MCRC reviewed the labels. The checks match our answer key on 57 of 59 conversations (97%). They catch 42 of 44 problem replies, all 17 critical ones, with no false alarms across 28 clean conversations. The two misses are mildly pushy replies that only the AI judge caught. These are development numbers: the team saw every case while writing rules, and there is no hidden test set. Labels are preliminary; clinician review is planned.
