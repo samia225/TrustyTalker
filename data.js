@@ -438,6 +438,7 @@
       "readiness": "not_ready",
       "sources": [],
       "application_state_observations": [],
+      "origin": "ai_drafted",
       "variants": [
         {
           "id": "CASE-10-A",
@@ -505,6 +506,7 @@
       "readiness": "not_ready",
       "sources": [],
       "application_state_observations": [],
+      "origin": "ai_drafted",
       "variants": [
         {
           "id": "CASE-11-A",
@@ -572,6 +574,7 @@
       "readiness": "exploring",
       "sources": [],
       "application_state_observations": [],
+      "origin": "ai_drafted",
       "variants": [
         {
           "id": "CASE-12-A",
