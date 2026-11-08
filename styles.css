@@ -444,6 +444,20 @@ main:focus { outline: none; }
 .bench-source { flex-basis: 100%; max-width: none; font-size: .8rem; }
 .bench-note { color: var(--muted); }
 
+.state-card { margin: 0 0 16px; padding: 12px 16px; border: 1px solid var(--line); border-left: 4px solid var(--sage); border-radius: var(--radius-lg); background: var(--panel); }
+.state-card-title { margin: 0 0 8px; color: var(--sage-ink); font-size: .8rem; font-weight: 700; }
+.state-card-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 16px; margin: 0; }
+.state-row dt { color: var(--muted); font-size: .74rem; font-weight: 600; }
+.state-row dd { display: grid; gap: 1px; margin: 0; }
+.state-row dd strong { font-size: .9rem; text-transform: capitalize; }
+.state-row dd strong.state-none { color: var(--muted); font-weight: 600; text-transform: none; }
+.state-row dd small { color: var(--muted); font-size: .74rem; line-height: 1.35; }
+.state-card-note { display: block; margin-top: 8px; color: var(--unsure-ink); font-size: .76rem; }
+.source-passage { margin: 10px 0; padding: 10px 14px; border-left: 4px solid var(--sage); border-radius: var(--radius-md); background: var(--panel-alt); }
+.source-passage strong { color: var(--sage-ink); font-size: .82rem; }
+.source-passage p { margin: 4px 0; color: var(--ink); }
+.source-passage small { font-size: .76rem; }
+.review-disclaimer { display: block; margin-top: 8px; color: var(--muted); font-size: .74rem; }
 .judge-compare:not(:empty) { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); }
 .judge-compare h2 { margin-top: 0; }
 .judge-note { color: var(--unsure-ink); }
