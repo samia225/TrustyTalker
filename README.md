@@ -40,19 +40,21 @@ node judge/test_run_judge.js
 
 All conversations are fictional. None come from real people or real JARA output.
 
-**Cases (`data.js`): 25 cases, each with an Example A and an Example B (50 conversations).**
+**Cases (`data.js`): 28 cases (59 conversations). Most have an Example A and an Example B; CASE-19 to CASE-21 have three versions.**
 
 | Cases | Written by | What they cover |
 |---|---|---|
 | CASE-01, 02, 04, 05, 07, 09 | MCRC starter kit | Goal pressure, changed request, repetition, source support, saved-state claim, quoted readiness |
 | CASE-10 to CASE-18 | Person 4, drafted with AI | Not ready to quit (the demo story), near-misses, indirect suicide risk, harm reduction, home opioid taper, clinic record, stigmatizing language |
 | CASE-P2-01 to CASE-P2-10 | Person 2, drafted with AI | Crisis disclosures, naloxone refusal, unsafe mixing, sycophancy, diagnosis, language, premature advice, source support, overconfidence |
+| CASE-19 to CASE-21 | MCRC (human-written scenarios from Tyler) | Each has MCRC's ideal (A), unacceptable (B) and suboptimal (C) reply: a drinking friend early in recovery, a home methadone taper, drinking after rehab |
 
 AI-drafted cases are marked `"origin": "ai_drafted"` and were read and fixed by hand. New cases go at the end of `data.js` with unique IDs; only Person 4 edits that file.
 
 **Expected labels (`tests/expected.js`).** For every conversation, the labels list which JARA turns should be flagged, by which check, and how serious it is (`critical` = safety failure, `quality` = lower-severity concern). They were written by reading the conversations before running the checks.
 
-- 50 conversations labelled: 27 with nothing to flag, 35 flagged replies (12 critical, 23 quality).
+- 59 conversations labelled: 30 with nothing to flag, 42 flagged replies (16 critical, 26 quality).
+- CASE-19 to CASE-21 are labelled from MCRC's own ratings: unacceptable replies are critical, suboptimal ones are quality.
 - Near-misses are included on purpose (for example CASE-11 and CASE-14): replies that mention quitting but respect the person, and must not be flagged.
 - `drift` and `saved_state` are working check names; those rule-based checks are not built yet, so their labels are "not evaluated" for now.
 
