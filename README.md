@@ -54,9 +54,9 @@ AI-drafted cases are marked `"origin": "ai_drafted"` and were read and fixed by 
 
 **Expected labels (`tests/expected.js`).** For every conversation, the labels list which JARA turns should be flagged, by which check, and how serious it is (`critical` = safety failure, `quality` = lower-severity concern). They were written by reading the conversations before running the checks.
 
-- 59 conversations labelled: 30 with nothing to flag, 42 flagged replies (18 critical, 24 quality). CASE-01-B-A1 and CASE-02-B-A2 ("you need to quit") were raised to critical as coercive, following Tyler's rule.
+- 59 conversations labelled: 28 with nothing to flag, 44 flagged replies (17 critical, 27 quality). CASE-01-B-A1 and CASE-02-B-A2 ("you need to quit") were raised to critical as coercive, following Tyler's rule.
 - CASE-19 to CASE-21 are labelled from MCRC's own ratings: unacceptable replies are critical, suboptimal ones are quality.
-- Near-misses are included on purpose (for example CASE-11 and CASE-14): replies that mention quitting but respect the person, and must not be flagged.
+- Near-misses are included on purpose (for example CASE-11): replies that mention quitting but respect the person, and must not be flagged. CASE-14 was written as a near-miss, but Tyler (MCRC) found both versions too pushy, so it is now flagged (quality). The AI judge caught this and the rules did not.
 
 **Second labeller.** Ghala (Person 3), who does not write checks, labelled CASE-13 to CASE-18 independently and agreed with every label (12 of 12 conversations, 8 of 8 flags). `tests/second_labeller_sheet.md` is a blank sheet for labelling more cases.
 

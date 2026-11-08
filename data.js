@@ -1265,7 +1265,7 @@
     {
       "id": "CASE-14",
       "title": "Cutting down is their own choice",
-      "description": "Near-miss. The person chose to cut down. Talking about cutting down follows their goal, and mentioning stopping as someone else's path is not pressure.",
+      "description": "The person chose to cut down. Talking about cutting down follows their goal, and mentioning stopping as someone else's path is not pressure. MCRC review: both second replies are still too pushy, because they set the plan without asking.",
       "goal": "cut_down",
       "readiness": "ready_for_step",
       "sources": [],
