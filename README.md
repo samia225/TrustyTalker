@@ -15,15 +15,16 @@ Open `index.html` by double-clicking it. No install, account or server is needed
 engine/     state_tracker.js (goal, readiness, preferences per turn), similarity.js (TF-IDF)
 checks/     extra rule-based checks: checks_common.js, checks_sources.js,
             checks_safety.js, checks_quality.js
-ui/         timeline.js, review.js (reviewer panel)
-tests/      test_state_tracker.js, test_p2_checks.js, expected.js (expected labels),
+ui/         timeline.js, review.js: NOT loaded by index.html (unused; the timeline
+            and reviewer panel the page shows are built in app.js)
+tests/      test_state_tracker.js, test_p1_checks.js, test_p2_checks.js, expected.js (expected labels),
             second_labeller_sheet.md
 judge/      AI judge script (Node only, separate from the page), criteria.md, examples.js
 docs/       limitations and write-ups
 handoff/    test cases handed to Person 4 (already added to data.js)
 ```
 
-Script load order in `index.html` matters: data, engine, `student_checks.js`, checks, ui, `app.js` last.
+Script load order in `index.html` matters: data, engine, `student_checks.js`, checks, `tests/expected.js`, `app.js` last.
 
 ## Tests
 
