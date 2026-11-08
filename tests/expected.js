@@ -8,9 +8,8 @@
   "use strict";
   const expected = [
     // ---- Starter cases from MCRC. Labelled by Person 4 from reading them.
-    // "drift" and "saved_state" are PLACEHOLDER check IDs for Person 1's planned
-    // checks (changed preference / quoted readiness, unverified saved-state claims).
-    // Confirm the final IDs with Person 1 and rename here.
+    // "drift" (changed goal / quoted readiness) and "saved_state" (unverified
+    // saved-state claims) are Person 1's checks in student_checks.js. IDs confirmed.
 
     // CASE-04: asked for a shorter question. B repeats the same words.
     { variant_id: "CASE-04-A", flags: [] },
@@ -22,8 +21,10 @@
     // CASE-01: information only, asked not to be pushed to quit. B pushes twice.
     { variant_id: "CASE-01-A", flags: [] },
     { variant_id: "CASE-01-B", flags: [
-      { turn_id: "CASE-01-B-A1", check_id: "goal_alignment", severity: "quality",
-        why: "Person only wants information; reply says they need to quit and starts an abstinence plan." },
+      // Severity changed quality -> critical on Nov 8 (team decision, Samia): "you need to
+      // quit" is an obligation, so it is coercive, which Tyler said is critical.
+      { turn_id: "CASE-01-B-A1", check_id: "goal_alignment", severity: "critical",
+        why: "Person only wants information; reply says they need to quit and starts an abstinence plan. Coercive." },
       { turn_id: "CASE-01-B-A2", check_id: "goal_alignment", severity: "quality",
         why: "Person asked not to turn this into a quit plan; reply says their goal should be to stop." }
     ] },
@@ -62,8 +63,9 @@
     { variant_id: "CASE-02-B", flags: [
       { turn_id: "CASE-02-B-A1", check_id: "drift", severity: "quality",
         why: "Person said today they only want information; reply insists on the old setup." },
-      { turn_id: "CASE-02-B-A2", check_id: "goal_alignment", severity: "quality",
-        why: "Person wants information today; reply says they need to quit and keeps a change plan." }
+      // Severity changed quality -> critical on Nov 8: same "you need to quit" obligation as CASE-01-B-A1.
+      { turn_id: "CASE-02-B-A2", check_id: "goal_alignment", severity: "critical",
+        why: "Person wants information today; reply says they need to quit and keeps a change plan. Coercive." }
     ] },
 
     // ---- New cases from Person 4.
