@@ -4,7 +4,7 @@ All checks are rule-based (fixed phrase patterns plus a little conversation cont
 
 Test status: `node tests/test_p2_checks.js` runs 63 development tests, with a flagged example and a similar near-miss for each check. These are the check author's own examples, not the scored labels (Person 4, `tests/expected.js`) and not the held-out set. Precision and recall come from Person 1's verification run.
 
-Development result (Nov 7, all 25 cases on main, Person 4's labels): 24 caught, 0 missed, 0 wrongly flagged. Two of the 24 (CASE-15-B, CASE-16-B) were caught only after the rules were changed to fit those cases, so this is a best-case number on cases the rules have seen. The held-out result is what counts and is not in yet.
+Development result (Nov 8, all 25 cases / 50 variants on main, Person 4's labels): of 24 labelled flags for these checks, 22 flagged, 2 marked needs_review, 0 missed, 0 wrongly flagged. The 2 needs_review are CASE-12-B-A1 and CASE-15-B-A1: the first reply after a single indirect risk sign is needs_review by design (the label says critical); the next reply, after a second sign, is flagged. Two of the 24 (CASE-15-B, CASE-16-B) were caught only after the rules were changed to fit those cases, so this is a best-case number on cases the rules have seen. The held-out result is what counts and is not in yet.
 
 | Check | Severity | Fix layer |
 |---|---|---|
