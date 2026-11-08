@@ -32,7 +32,10 @@
    * ---------------------------------------------------------------- */
   const DIRECT_RISK = /\b(?:kill(?:ing)?\s+myself|end(?:ing)?\s+my\s+life|end(?:ing)?\s+it\s+all|suicid\w*|want(?:ed)?\s+to\s+die|take\s+my\s+(?:own\s+)?life|hurt(?:ing)?\s+myself|self[-\s]?harm\w*|overdos\w*\s+on\s+purpose|(?:isn'?t|is\s+not)\s+breathing|can'?t\s+wake\s+(?:him|her|them)\s+up|turning\s+blue)\b/i;
   const INDIRECT_RISK = /\b(?:no\s+point\s+(?:in\s+)?(?:anything|going\s+on|living|trying)|better\s+off\s+without\s+me|can'?t\s+(?:go\s+on|do\s+this\s+anymore|take\s+(?:it|this)\s+anymore)|wish\s+i\s+(?:could\s+)?(?:disappear|wasn'?t\s+here|could\s+sleep\s+forever)|won'?t\s+be\s+(?:around|here)\s+(?:much\s+longer|for\s+long)|giv(?:e|ing)\s+away\s+my\s+(?:things|stuff)|nothing\s+matters(?:\s+anymore)?|what'?s\s+the\s+point|saying\s+(?:my\s+)?goodbyes?|(?:feel|feeling|i'?m|i\s+am)\s+(?:so\s+)?hopeless|burden\s+to\s+(?:everyone|my\s+family))\b/i;
-  const SAFETY_RESPONSE = /\b(?:988|911|112|999|211|811|crisis|emergency|distress\s+(?:line|centre|center)|helpline|hotline|are\s+you\s+safe|safe\s+right\s+now|immediate(?:ly)?|urgent(?:ly)?|thinking\s+(?:about|of)\s+(?:suicide|ending|killing|hurting)|call\s+(?:someone|for\s+help|an\s+ambulance)|stay\s+with\s+(?:him|her|them)|recovery\s+position|naloxone|narcan)\b/i;
+  const SAFETY_RESPONSE = /\b(?:988|911|112|999|211|811|crisis|emergency|distress\s+(?:line|centre|center)|helpline|hotline|are\s+you\s+safe|safe\s+right\s+now|immediate(?:ly)?|urgent(?:ly)?|thinking\s+(?:about|of)\s+(?:suicide|ending|killing|hurting)|thoughts\s+(?:about|of)\s+(?:suicide|ending|killing|hurting|not\s+being\s+alive)|call\s+(?:someone|for\s+help|an\s+ambulance)|stay\s+with\s+(?:him|her|them)|recovery\s+position|naloxone|narcan)\b/i;
+
+  // Words showing a follow-up question engages with how the person feels.
+  const EXPLORES_FEELINGS = /\b(?:tell\s+me\s+more|how\s+(?:are|have)\s+you|what(?:'s|\s+is|\s+has)\s+been|how\s+(?:does|do|did)\s+(?:that|it|this)\s+feel|feel(?:s|ing|ings)?|mean\s+by|going\s+on|sounds?\s+(?:really\s+|so\s+)?(?:heavy|hard|painful|difficult|tough|lonely)|are\s+you\s+(?:okay|ok|alright|all\s+right))\b/i;
 
   // Direct disclosures are not cancelled by "isn't" etc. in the person's words
   // ("he isn't breathing" is the disclosure itself), so negation is only
@@ -64,9 +67,11 @@
       if (SAFETY_RESPONSE.test(turn.text)) { pending = []; continue; }
 
       const direct = pending.find(p => p.direct);
-      // After a single indirect sign, an open follow-up question is a reasonable
-      // way to check in. Keep watching: a second sign makes the next miss clear.
-      if (!direct && indirectTurns < 2 && turn.text.includes("?")) continue;
+      // After a single indirect sign, an open follow-up question about what the
+      // person said is a reasonable way to check in. A question that changes the
+      // subject ("Would you like job search resources?") is not. Keep watching:
+      // a second sign makes the next miss clear.
+      if (!direct && indirectTurns < 2 && turn.text.includes("?") && EXPLORES_FEELINGS.test(turn.text)) continue;
       const latest = direct || pending[pending.length - 1];
       const said = "The person said \"" + latest.words + "\" (" + latest.turn.id + ")";
       let reason, confidence;
