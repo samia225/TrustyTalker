@@ -59,9 +59,80 @@
   function isCritical(hint) { return String(hint.severity || "").toLowerCase() === "critical"; }
   function makeSeverityBadge(hint) {
     const value = String(hint.severity || "").toLowerCase();
-    const badge = element("span", value === "critical" ? "Critical" : pretty(value), "badge badge-severity severity-" + value);
-    badge.title = value === "critical" ? "Safety problem. Review this first." : "Lower-severity quality concern.";
+    const badge = element("span", value === "critical" ? "Critical · blocks release" : pretty(value), "badge badge-severity severity-" + value);
+    badge.title = value === "critical" ? "Critical safety failure. A confirmed critical finding blocks a JARA release until it is fixed." : "Lower-severity quality concern. Guides improvement but does not block a release.";
     return badge;
+  }
+
+  // ---- Source passage on source-support findings ------------------------
+  // Shows the passage the claim was checked against, so the reviewer can judge
+  // grounding without leaving the finding. Cited source first; otherwise the
+  // closest one by Fatima's TF-IDF (engine/similarity.js).
+  function sourcePassageBox(scenario, variantId, turnId) {
+    const variant = scenario.variants.find(v => v.id === variantId);
+    const turn = variant && variant.turns.find(t => t.id === turnId);
+    const sources = scenario.sources || [];
+    if (!turn || !sources.length) return null;
+    let found = null;
+    const sim = window.JARASimilarity;
+    if (sim && typeof sim.closestSource === "function") {
+      try { found = sim.closestSource(scenario, turn); } catch (error) { found = null; }
+    }
+    if (!found) {
+      const citedId = (turn.claims || []).map(c => c.source_id)[0];
+      const source = sources.find(s => s.id === citedId);
+      if (source) found = { source_id: source.id, passage: source.passage, cited: true };
+    }
+    if (!found || !found.passage) return null;
+    const box = element("div", undefined, "source-passage");
+    box.append(element("strong", (found.cited ? "Cited source " : "Closest source ") + found.source_id + " says:"),
+      element("p", found.passage),
+      element("small", "Compare this with the quoted claim above. Does the source actually say it?", "muted"));
+    return box;
+  }
+
+  // ---- What the person has said (Samia's state tracker) ------------------
+  // Goal, readiness, preferences and declined items, each with the turn where the
+  // person said it. "From case setup" means it was never stated in this chat.
+  // unsure, declined and not supplied stay distinct, as Tyler asked.
+  function statePanel(scenario, variant) {
+    const tracker = window.JARAState;
+    if (!tracker || typeof tracker.trackState !== "function") return null;
+    let snapshots;
+    try { snapshots = tracker.trackState(scenario, variant); } catch (error) { return null; }
+    if (!snapshots || !snapshots.length) return null;
+    const last = snapshots[snapshots.length - 1];
+    const shortId = id => String(id || "").split("-").pop();
+    function origin(item) {
+      if (!item) return "Not supplied";
+      if (item.origin === "case_setup" || !item.evidence_turn_id) return "From case setup, not stated in this chat";
+      return "Said by the person in " + shortId(item.evidence_turn_id) + (item.quote ? ": \u201c" + item.quote + "\u201d" : "");
+    }
+    const panel = element("div", undefined, "state-card");
+    panel.append(element("p", "What the person has said", "state-card-title"));
+    const list = element("dl", undefined, "state-card-list");
+    function row(label, value, detail) {
+      const wrap = element("div", undefined, "state-row");
+      wrap.append(element("dt", label));
+      const dd = element("dd");
+      dd.append(element("strong", value, /^(None|Nothing|Not) /.test(value) ? "state-none" : undefined), element("small", detail));
+      wrap.append(dd);
+      list.append(wrap);
+    }
+    row("Goal", pretty(last.goal && last.goal.value || "not supplied"), origin(last.goal));
+    row("Readiness", pretty(last.readiness && last.readiness.value || "not supplied"), origin(last.readiness));
+    const prefs = last.preferences || [];
+    row("Preferences", prefs.length ? prefs.map(p => pretty(p.kind)).join(", ") : "None stated",
+      prefs.length ? prefs.map(p => origin(p)).join(" · ") : "");
+    const declined = last.declined || [];
+    row("Declined", declined.length ? declined.map(d => pretty(d.item)).join(", ") : "Nothing declined",
+      declined.length ? declined.map(d => origin(d)).join(" · ") : "");
+    panel.append(list);
+    if ((last.uncertain || []).length) {
+      panel.append(element("small", (last.uncertain.length) + " unclear statement" + (last.uncertain.length === 1 ? "" : "s") +
+        " not applied: " + last.uncertain.map(u => shortId(u.turn_id)).join(", "), "state-card-note"));
+    }
+    return panel;
   }
 
   // ---- Goal timeline -----------------------------------------------------
@@ -127,6 +198,8 @@
       const section = element("section", undefined, "variant");
       section.setAttribute("aria-label", variant.label);
       section.append(element("h3", variant.label));
+      const state = statePanel(scenario, variant);
+      if (state) section.append(state);
       const goals = goalsForVariant(scenario, variant);
       variant.turns.forEach((turn, index) => {
         const message = element("div", undefined, "turn " + turn.role);
@@ -188,6 +261,8 @@
         provenance: data.provenance, implemented_checks: api.checks.filter(c => c.implemented).map(c => c.id),
         unfinished_checks: api.checks.filter(c => !c.implemented).map(c => c.id),
         review_status: "unreviewed_suggestions", clinical_validation: "not_established",
+        review_note: "A confirmed finding means a reviewer agrees with it. It is not clinical approval.",
+        release_blocking_rule: "Confirmed critical findings block a release; quality findings guide improvement.",
         application_state_observed: false, results
       };
       // Keep each hint's original index (the review key and the export use it),
@@ -213,8 +288,12 @@
         const back = element("button", "Show in conversation", "link-button back-to-turn");
         back.type = "button";
         back.addEventListener("click", () => focusTurn(hint.turn_id));
-        row.append(heading, element("p", hint.reason), element("blockquote", hint.evidence_quote),
-          element("small", meta), back, reviewControls(key, variantId, hint));
+        row.append(heading, element("p", hint.reason), element("blockquote", hint.evidence_quote));
+        if (hint.check_id === "source_support") {
+          const passage = sourcePassageBox(scenario, variantId, hint.turn_id);
+          if (passage) row.append(passage);
+        }
+        row.append(element("small", meta), back, reviewControls(key, variantId, hint));
         row.addEventListener("focusin", () => setActive(findingCards.findIndex(f => f.key === key), false));
         row.addEventListener("click", () => setActive(findingCards.findIndex(f => f.key === key), false));
         findings.append(row);
@@ -574,8 +653,10 @@
 
     const reason = element("textarea", undefined, "review-comment");
     reason.rows = 2;
-    reason.placeholder = "Reason: why do you agree or disagree?";
-    reason.setAttribute("aria-label", "Reviewer reason for " + hint.turn_id);
+    // "Reason or correction" also covers Vatsal's "modify": a reviewer who agrees
+    // only in part writes the corrected finding here.
+    reason.placeholder = "Reason or correction: why do you agree or disagree, or what should the finding say?";
+    reason.setAttribute("aria-label", "Reason or correction for " + hint.turn_id);
     const evidence = element("input", undefined, "review-evidence");
     evidence.type = "text";
     evidence.placeholder = "Evidence (leave blank to use the quoted text)";
@@ -623,7 +704,8 @@
     }
     reason.addEventListener("input", () => save());
     evidence.addEventListener("input", () => save());
-    box.append(group, reason, evidence, note, regression);
+    const disclaimer = element("small", "Confirming means a reviewer agrees with this finding. It is not clinical approval.", "review-disclaimer");
+    box.append(group, reason, evidence, note, regression, disclaimer);
     refresh();
     return box;
   }
@@ -746,6 +828,10 @@
       schema_version: "trustytalker-regression-1",
       regression_id: "REG-" + hint.check_id + "-" + hint.turn_id,
       created_at: new Date().toISOString(),
+      severity: hint.severity || null,
+      // Vatsal: critical safety tests are release-blocking; other scores guide improvement.
+      release_blocking: isCritical(hint),
+      fix_layer: hint.fix_layer || null,
       dataset_version: data.version,
       provenance: data.provenance,
       source: { case_id: scenario.id, variant_id: variant.id, turn_id: hint.turn_id },
