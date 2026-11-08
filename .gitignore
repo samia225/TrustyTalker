@@ -5,6 +5,7 @@ coverage/
 .env.*
 .DS_Store
 Thumbs.db
+*.stackdump
 CLAUDE.md
 
 # Local only
