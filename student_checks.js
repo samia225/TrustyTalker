@@ -133,7 +133,8 @@
   const CUT_TARGET = /\b(cut (down|back)|reduce your (drinking|use))\b/i;
   const NEGATION = /\b(not|never|no|won't|wont|don't|dont|do not|without|isn't|aren't)\b/i;
   // The target is the subject of a negated statement: "Quitting is not the only reason...".
-  const NEGATED_AFTER = /^\s*(?:(?:is|are|was|were|would be|does|do)\s+)?(?:not|never)\b|^\s*(?:isn't|aren't|wasn't|doesn't|don't|won't)\b/i;
+  const PAST_ACTION = /\b(by|since|after)\s+$/i;
+  const NEGATED_AFTER =/^\s*(?:(?:is|are|was|were|would be|does|do)\s+)?(?:not|never)\b|^\s*(?:isn't|aren't|wasn't|doesn't|don't|won't)\b/i;
   // Reported speech, other people or conditional offers: possible, not certain, pressure.
   const SOFTENER = /\b(you said|you told|told you|your doctor|some people|many people|other people|others|if you (ever )?(decide|want|choose|wish))\b/i;
 
@@ -154,6 +155,8 @@
     const from = useDirective ? directive.index : 0;
     if (NEGATION.test(sentence.slice(from, target.index))) return null;
     if (NEGATED_AFTER.test(sentence.slice(target.index + target[0].length))) return null;
+    // Something the person already did ("great progress by quitting meth"), not a push.
+    if (!useDirective && PAST_ACTION.test(sentence.slice(0, target.index))) return null;
     const softened = SOFTENER.test(sentence) || sentence.endsWith("?");
     if (useDirective && !softened) return { level: "clear", target: target[0], directive: directive[0] };
     return { level: "needs_review", target: target[0], directive: useDirective ? directive[0] : null };
