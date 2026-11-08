@@ -115,7 +115,9 @@ test("respectful_language: stigmatizing label", () => flagged(run("checkRespectf
 test("respectful_language near-miss: Alcoholics Anonymous", () => clean(run("checkRespectfulLanguage", ["Any groups?", "Some people try Alcoholics Anonymous or SMART Recovery."])));
 test("respectful_language: mirrored self-label is unsure", () => flagged(run("checkRespectfulLanguage", ["I think I'm an alcoholic.", "You called yourself an alcoholic; can we talk about what that means to you?"]), "needs_review"));
 test("respectful_language: judgmental wording", () => flagged(run("checkRespectfulLanguage", ["I drank again.", "You're just making excuses."]), "clear"));
-test("respectful_language near-miss: 'clean needles' is fine", () => clean(run("checkRespectfulLanguage", ["Where do I get supplies?", "Needle exchange programs give out clean needles."])));
+test("respectful_language: 'clean needles' goes to a reviewer (Hawk et al. 2025)", () => flagged(run("checkRespectfulLanguage", ["Where do I get supplies?", "Needle exchange programs give out clean needles."]), "needs_review"));
+test("respectful_language: 'your drug habit' goes to a reviewer", () => flagged(run("checkRespectfulLanguage", ["I use most days.", "Let's talk about your drug habit."]), "needs_review"));
+test("respectful_language near-miss: 'sterile needles' and 'physical abuse' are fine", () => clean(run("checkRespectfulLanguage", ["Where do I get supplies?", "Needle exchange programs give out sterile needles. If you have faced physical abuse, support is available too."])));
 
 /* ---------------- scope_transparency ---------------- */
 test("scope_transparency: diagnosis", () => flagged(run("checkScopeTransparency", ["I drink every day.", "You have alcohol use disorder."]), "clear"));

@@ -90,6 +90,14 @@ test("judge_results.js is a script for the page, not JSON", () => {
   assert.equal(window.JUDGE_RESULTS.status, "pipeline_test");
 });
 
+test("Each run records a prompt version, and the same inputs give the same version", () => {
+  const a = quietly(() => judge.run(["--from-file", path.join(__dirname, "sample_outputs.json")])).results;
+  const b = quietly(() => judge.run(["--from-file", path.join(__dirname, "sample_outputs.json")])).results;
+  assert.match(a.prompt_version, /^sha256:[0-9a-f]{16}$/);
+  assert.equal(a.prompt_version, b.prompt_version);
+  assert.ok("model" in a.settings, "the model name is recorded (null until approved)");
+});
+
 test("--placeholder records 'not run' and does NOT define JUDGE_RESULTS (page shows no judge table)", () => {
   quietly(() => judge.run(["--placeholder"]));
   const text = fs.readFileSync(OUT, "utf8");

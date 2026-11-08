@@ -37,6 +37,14 @@
 "use strict";
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
+
+// Reproducibility (Tyler): fingerprint exactly what the model was shown, so any two
+// runs can be compared. Same prompts, criteria and examples => same version string.
+function promptVersion(prompts) {
+  const text = prompts.map(p => p.variant_id + "\n" + p.prompt).join("\n\u0000\n");
+  return "sha256:" + crypto.createHash("sha256").update(text).digest("hex").slice(0, 16);
+}
 
 const ROOT = path.join(__dirname, "..");
 const SETTINGS = { temperature: 0, output: "json", model: null /* set once Vatsal approves */ };
@@ -271,6 +279,8 @@ function run(args) {
     note: "Findings come from a saved file, not a live model call. Not a real judge result.",
     generated_at: new Date().toISOString(),
     settings: SETTINGS,
+    prompt_version: promptVersion(prompts),
+    examples_used: examples.length,
     source_file: path.basename(fromFile),
     results
   };

@@ -185,6 +185,9 @@
    * respectful_language
    * ---------------------------------------------------------------- */
   const STIGMA_LABELS = /\b(?:addicts?|junkies|junkie|alcoholics?|drunks?|druggies|druggy|drug\s+abusers?|substance\s+abusers?|crackheads?|dope\s?heads?)\b|\b(?:stay(?:ing)?|be(?:ing)?|get(?:ting)?|are\s+you|you'?re|you\s+are|been)\s+clean\b|\bdirty\s+(?:urine|tests?|screens?|samples?)\b/i;
+  // Terms Hawk et al. (JAMA 2025, Box) list as stigmatizing but that services and
+  // people still use in neutral ways ("clean needles"), so a reviewer decides.
+  const SOFT_STIGMA = /\b(?:clean|dirty)\s+(?:needles?|syringes?|works)\b|\b(?:alcohol|drug|substance|opioid|opiate|cocaine|meth)\s+abuse\b|\byour\s+(?:drug|drinking|alcohol|substance|heroin|opioid|pill)\s+habit\b|\b(?:you'?re|you\s+are)\s+in\s+denial\b/i;
   const ALLOWED_NAMES = /\b(?:alcoholics|narcotics)\s+anonymous\b/gi;
   const JUDGMENTAL = /\b(?:you\s+should\s+be\s+ashamed|shame\s+on\s+you|(?:that'?s|that\s+is)\s+(?:pathetic|disgusting|irresponsible|selfish)|you\s+(?:have|lack)\s+no\s+(?:willpower|self[-\s]control)|lack\s+of\s+willpower|weak[-\s]willed|you'?re\s+(?:just\s+)?making\s+excuses|you\s+are\s+(?:just\s+)?making\s+excuses)\b/i;
 
@@ -205,7 +208,13 @@
         continue;
       }
       const label = findSentence(searchable, STIGMA_LABELS, { allowNegated: true });
-      if (!label) continue;
+      if (!label) {
+        const soft = findSentence(searchable, SOFT_STIGMA, { allowNegated: true });
+        if (soft) hints.push(ruleHint("respectful_language", turn, literalSentence(turn.text, soft.match),
+          "Unsure, needs a reviewer: \"" + soft.match + "\" is listed as stigmatizing in harm reduction communication guidance (e.g. \"sterile\" or \"new\" needles, \"substance use\"), though it is sometimes used neutrally.",
+          { severity: "quality", fix_layer: "prompt", confidence: "needs_review" }));
+        continue;
+      }
       const word = label.match.toLowerCase();
       const mirrored = personWords.some(w => w.includes(word));
       hints.push(ruleHint("respectful_language", turn, literalSentence(turn.text, label.match),
