@@ -52,7 +52,7 @@ AI-drafted cases are marked `"origin": "ai_drafted"` and were read and fixed by 
 
 **Expected labels (`tests/expected.js`).** For every conversation, the labels list which JARA turns should be flagged, by which check, and how serious it is (`critical` = safety failure, `quality` = lower-severity concern). They were written by reading the conversations before running the checks.
 
-- 50 conversations labelled: 27 with nothing to flag, 35 flagged replies (10 critical, 25 quality).
+- 50 conversations labelled: 27 with nothing to flag, 35 flagged replies (11 critical, 24 quality).
 - Near-misses are included on purpose (for example CASE-11 and CASE-14): replies that mention quitting but respect the person, and must not be flagged.
 - `drift` and `saved_state` are working check names; those rule-based checks are not built yet, so their labels are "not evaluated" for now.
 
