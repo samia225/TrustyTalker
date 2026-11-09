@@ -1,103 +1,127 @@
 # TrustyTalker
 
-**Live demo:** <https://samia225.github.io/TrustyTalker/> (opens in the browser, nothing to install)
+**Try it now:** <https://samia225.github.io/TrustyTalker/> (works in any web browser, nothing to install)
 
 **Slides:** [TrustyTalker presentation (Google Slides)](https://docs.google.com/presentation/d/1JGyxZ9rjJcRe2xCfBYWCW5StzpVJNszr/edit?usp=sharing&ouid=110349585327549657552&rtpof=true&sd=true)
 
-TrustyTalker is a review tool for MCRC Health's JARA, a non-diagnostic support and resource-navigation chatbot for adults with substance use and mental health concerns. It reads fictional JARA conversations, keeps track of what the person has said (their goal, readiness to change, preferences and anything they declined), and flags JARA replies that do not fit, for example pushing someone to quit when they only asked for information. A human reviewer then decides whether each flag is a real problem.
+**Code:** <https://github.com/samia225/TrustyTalker>
 
-Built at natHacks 2026 (Problem Provider Division) for MCRC Health. All rights reserved by MCRC Health. Fictional data only. The `base-code` tag is the MCRC starter kit as provided; everything after it was written during the natHacks weekend (Nov 6, 7 PM to Nov 9, 11 AM).
+---
 
-## What it does
+## What is TrustyTalker?
 
-- **Tracks the person, turn by turn.** Goal, readiness, preferences and declined items. The newest statement wins.
-- **Runs 18 rule-based checks on every JARA reply.** They cover:
-  - goal pressure and drift;
-  - repetition;
-  - unsupported service details;
-  - missed crisis signs and unsafe advice;
-  - unnecessary refusals;
-  - diagnosis or medical advice instead of resources;
-  - missing or wrong-region resources;
-  - stigmatizing language;
-  - sycophancy;
-  - overconfidence.
-- **Explains every flag.** Each flag quotes JARA's exact words, names the turn, gives a reason, says how serious it is (critical or quality) and where JARA would need fixing.
-- **Shows an optional AI judge second opinion beside the rules.** It is clearly labelled as AI.
-- **Lets reviewers decide.** Reviewers answer Yes / No / Not sure, rate the reply, see others' average scores, and can suggest a better reply. Suggestions are labelled with the reviewer's role and never as AI.
-- **Exports the results.** Results export as JSON or CSV. Confirmed problems export as regression tests.
+**JARA** is a chatbot that MCRC Health is building to support adults with alcohol, drug and mental health concerns. It gives information and points people to services. It does not diagnose or prescribe.
 
-## How to access, set up and run
+Sometimes a chatbot reply sounds kind but misses what the person actually asked for. For example, someone says *"I'm not ready to quit, I just want information"*, and the chatbot replies *"You need to quit. Here is your plan."* Replies like that can push people away.
 
-**Access online.** Open the live demo: <https://samia225.github.io/TrustyTalker/>. It runs entirely in your browser; your answers stay on your computer.
+**TrustyTalker finds those replies before real people ever see them.** It reads practice conversations (all made up, no real people), keeps track of what the person has said they want, and flags JARA replies that don't fit. A human reviewer then decides whether each flag is a real problem.
 
-**Access the code.** Get it from GitHub: <https://github.com/samia225/TrustyTalker>.
+### What it checks
+TrustyTalker runs **18 automatic checks** on every JARA reply. In plain words, it looks for replies that:
+- push the person toward a goal they didn't choose, or forget what they said earlier;
+- repeat themselves, or ask again about something the person already declined;
+- miss signs that someone may be in danger, or give unsafe advice;
+- refuse to share safety information, like where to get naloxone;
+- give medical advice or a diagnosis instead of pointing to a doctor, pharmacist, clinic or health line;
+- suggest a service in the wrong place, for example Tennessee for someone in Alberta;
+- state service details that the records don't support;
+- use stigmatizing words, agree with something risky, or sound more certain than they should.
+
+Every flag shows JARA's **exact words**, **why** it was flagged, **how serious** it is (critical or lower), and **where** JARA would need fixing.
+
+### People stay in charge
+- **An AI second opinion.** An AI model gave a second opinion on each reply ahead of time. It is always clearly labelled **AI JUDGE**, and it only suggests.
+- **Reviewers decide.** Each reviewer is a clinician, peer support worker, researcher or JARA developer. They answer **Yes / No / Not sure**, rate the reply, and can **suggest a better reply**. Suggestions are labelled with the reviewer's role, never as AI.
+- **Mistakes are retested.** Confirmed problems become tests that are rerun every time JARA changes.
+
+### How well it works so far
+On 59 labelled practice conversations:
+- the checks found **42 of 44** problem replies, including **all 17 critical** ones;
+- they flagged **none** of the good replies.
+
+These are early results, because the team saw every case while building the checks. Review by clinicians is the next step.
+
+## How to try it (no technical knowledge needed)
+
+1. Open **<https://samia225.github.io/TrustyTalker/>**. To use it without the internet, download the code instead (see "For developers") and double-click the file `index.html`.
+2. Choose **Continue as a guest**. You can also sign up; the account is saved only in your own browser.
+3. On Home, choose who you are, for example **Clinician**. A small helper called **Trusty** shows you around.
+4. Press **Start reviewing**. For each flagged reply, read the conversation and answer **Yes**, **No** or **Not sure**, with one sentence on why.
+5. Go to **Results** to see your decisions and download them.
+
+**A good example to look at:** **Browse cases → CASE-10 ("Not ready to quit")**. Compare the two versions of the conversation. Then scroll to the last JARA reply in Example B to see the flag, the AI's opinion and reviewers' suggestions.
+
+**Is my data sent anywhere?** No. The page runs entirely in your browser and makes no internet connections. Your answers stay on your computer until you download them.
+
+**What do I need?** Any laptop or desktop with a modern web browser (Chrome, Edge, Firefox or Safari). No special hardware.
+
+## For developers: set up and run
+
+**Get the code**
 ```
 git clone https://github.com/samia225/TrustyTalker.git
 ```
-You can also download the ZIP from GitHub (Code > Download ZIP) and unzip it.
+You can also use **Code → Download ZIP** on GitHub.
 
-**Set up.** Nothing to install for the app itself.
-
-**Run the app.**
-1. Open the folder and double-click `index.html`. It opens in any modern browser (Chrome, Edge, Firefox, Safari). No server, account or internet connection is needed.
-2. Log in, sign up, or choose **Continue as a guest**. Then pick your reviewer role on Home.
-3. Press **Start reviewing**, or **Browse cases** to open any case. The in-app guide (Home, then "See the step-by-step guide") walks through each step.
+**Run the app.** Open `index.html` in a browser.
+- There is no build step, server or package install.
+- The app is plain HTML, CSS and JavaScript with no dependencies.
+- Its Content-Security-Policy blocks all network calls.
 
 **Run the tests (optional).** These need [Node.js](https://nodejs.org) 18 or newer. There is no `npm install`. From the project folder:
 ```
 node check_starter.js --exercise-goals
 node tests/test_p1_checks.js
-node scoring/score_report.js        # caught / missed / wrongly flagged, precision, recall
+node scoring/score_report.js        # per-check caught / missed / wrongly flagged, precision, recall
 ```
 The full list is under [Tests](#tests).
 
-**Run the AI judge (optional, not needed for the app).**
+**The AI judge (optional, runs on your computer, never inside the page)**
 1. Put `OPENAI_API_KEY=...` in a `.env` file in the project folder. The file is gitignored; never commit a key.
-2. Run `node judge/run_judge.js --live`.
+2. Run one of these:
 
-Without a key, `node judge/run_judge.js` does a dry run with no network. Saved results are already included in `judge_results.js`.
+| Command | What it does |
+|---|---|
+| `node judge/run_judge.js --live` | Asks the AI model (gpt-4o-mini) for a second opinion on every conversation and saves the results to `judge_results.js`, which the page shows |
+| `node judge/watch_added.js` | Runs in the background. When a reviewer adds a new case in the page, it sends that case to the AI judge automatically. The open page then shows the AI's opinion within a few seconds, without a refresh. Leave it running; stop with **Ctrl+C** |
+| `node judge/run_judge.js` | Dry run: builds the prompts without calling the AI |
 
-## Dependencies and hardware
+- **What is sent:** only fictional conversations, anonymised first. Each run has a token limit.
+- **Without a key:** the app still works fully, and the saved AI results in `judge_results.js` are still shown.
 
-- **Hardware:** any laptop or desktop that can run a modern web browser. No special hardware was used or borrowed.
-- **The app:** no dependencies. Plain HTML, CSS and JavaScript, with no frameworks, packages, build step or CDN. Its Content-Security-Policy blocks all network calls.
-- **Tests and scoring:** Node.js 18 or newer, using built-in modules only (no packages).
-- **AI judge (optional):** the OpenAI API (gpt-4o-mini), with a restricted key and fictional, anonymised data only. Approved by MCRC.
-- **Details:** [docs/dependencies_and_services.md](docs/dependencies_and_services.md).
+**Dependencies**
 
-## Slides and demonstration
+| Part | Needs |
+|---|---|
+| The app | A web browser |
+| Tests and scoring | Node.js 18+, built-in modules only |
+| AI judge (optional) | The OpenAI API, with a restricted key approved by MCRC |
+
+Details are in [docs/dependencies_and_services.md](docs/dependencies_and_services.md).
+
+## Slides, demo and written materials
 
 - **Live demo:** <https://samia225.github.io/TrustyTalker/>
 - **Slides:** [TrustyTalker presentation (Google Slides)](https://docs.google.com/presentation/d/1JGyxZ9rjJcRe2xCfBYWCW5StzpVJNszr/edit?usp=sharing&ouid=110349585327549657552&rtpof=true&sd=true)
-- **Live demo path:**
-  1. Open the live demo (or `index.html`) and continue as a guest. Choose **Clinician** on Home.
-  2. Open CASE-10 ("Not ready to quit") from **Browse cases**.
-  3. Compare Example A and B. B's last reply is flagged, with the AI judge's opinion and reviewer suggestions underneath.
-  4. Press **Review this case**, answer Yes, and open **Others' scores**.
-  5. Finish on Results and download.
-- **Visual guide:** inside the app, with screenshots in [guide/](guide/).
-- **Example exported findings:** [docs/example_export_CASE-01.json](docs/example_export_CASE-01.json).
-
-## Written materials
-
+- **Visual guide:** inside the app (Home, then "See the step-by-step guide"), with screenshots in [guide/](guide/)
 - **Project summary (250 words):** [docs/project_summary.md](docs/project_summary.md)
 - **About the project (600 words):** [docs/about_the_project.md](docs/about_the_project.md)
-- **MCRC handover:** [docs/submission.md](docs/submission.md), answering SUBMISSION.txt.
-- **What each check catches and misses:** [docs/p1_checks_limitations.md](docs/p1_checks_limitations.md) and [docs/p2_checks_limitations.md](docs/p2_checks_limitations.md).
-- **Scoring report:** [scoring/score_report.md](scoring/score_report.md) (rules, AI judge, and agreement between them).
+- **MCRC handover:** [docs/submission.md](docs/submission.md)
+- **What each check catches and misses:** [docs/p1_checks_limitations.md](docs/p1_checks_limitations.md) and [docs/p2_checks_limitations.md](docs/p2_checks_limitations.md)
+- **Scoring report:** [scoring/score_report.md](scoring/score_report.md)
+- **Example exported results:** [docs/example_export_CASE-01.json](docs/example_export_CASE-01.json)
 
 ## Sources
 
-- **Problem and starter kit:** MCRC Health's JARA problem brief and starter kit (`base-code` tag, including `reference/support_choices.json`), and Tyler (MCRC)'s quality criteria and answers.
-- **Data:** every conversation is fictional.
-  - CASE-19 to CASE-21 are MCRC's own human-written scenarios.
+- **Problem and starter kit:** MCRC Health's JARA problem brief and starter kit (the `base-code` git tag, including `reference/support_choices.json`), plus Tyler (MCRC)'s quality criteria and answers.
+- **Conversations:** every conversation is made up.
+  - CASE-19 to CASE-21 were written by MCRC.
   - Cases marked `origin: "ai_drafted"` were drafted with AI, then read, fixed and labelled by the team.
-  - No real participant data is used.
+  - No real people's conversations or personal information are used.
 - **Research we drew on (ideas, not copied text):**
-  - Hawk et al. (2025), stigmatizing language terms.
-  - WHO digital health evaluation domains, for the adapted reviewer rating items (not a validated scale).
-  - The SIM-VAIL paper (Nature Medicine, 2026), for simulated users and validating an AI judge against people.
+  - Hawk et al. (2025), stigmatizing language.
+  - WHO digital health evaluation domains, for the reviewer rating questions (not a validated scale).
+  - The SIM-VAIL paper (Nature Medicine, 2026), for practice conversations and checking an AI judge against people.
 - **Third-party code:** none is included.
 
 ## Credits
@@ -107,8 +131,13 @@ Without a key, `node judge/run_judge.js` does a dry run with no network. Saved r
   - Fatima Khalid
   - Ghala Abdulfattah
   - Mohammad Hossein Naiji
-- **Problem provider:** MCRC Health. Tyler (MCRC) reviewed the labels and severity rules and supplied scenarios CASE-19 to CASE-21.
-- **Event:** natHacks 2026, University of Alberta.
+- **Problem provider:** MCRC Health. Tyler (MCRC) reviewed our labels and severity rules and wrote scenarios CASE-19 to CASE-21.
+- **Event:** natHacks 2026, University of Alberta. All rights reserved by MCRC Health.
+- **Code history:** the starter kit is tagged `base-code`. Everything after it was written during the natHacks weekend (Nov 6, 7 PM to Nov 9, 11 AM).
+
+---
+
+# Technical details
 
 ## Repository layout
 
