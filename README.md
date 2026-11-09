@@ -1,35 +1,110 @@
 # TrustyTalker
 
-Internal tool for MCRC Health that flags JARA replies in fictional conversations that ignore a person's goals, readiness to change, or earlier preferences. Built at natHacks 2026; all rights reserved by MCRC Health. Fictional data only.
+**Slides:** [TrustyTalker presentation (Google Slides)](https://docs.google.com/presentation/d/1JGyxZ9rjJcRe2xCfBYWCW5StzpVJNszr/edit?usp=sharing&ouid=110349585327549657552&rtpof=true&sd=true)
 
-The `base-code` tag is the MCRC starter kit as provided. Everything after it was written during the natHacks 2026 weekend (Nov 6, 7 PM to Nov 9, 11 AM).
+TrustyTalker is a review tool for MCRC Health's JARA, a non-diagnostic support and resource-navigation chatbot for adults with substance use and mental health concerns. It reads fictional JARA conversations, keeps track of what the person has said (their goal, readiness to change, preferences and anything they declined), and flags JARA replies that do not fit, for example pushing someone to quit when they only asked for information. A human reviewer then decides whether each flag is a real problem.
 
-## How to run
+Built at natHacks 2026 (Problem Provider Division) for MCRC Health. All rights reserved by MCRC Health. Fictional data only. The `base-code` tag is the MCRC starter kit as provided; everything after it was written during the natHacks weekend (Nov 6, 7 PM to Nov 9, 11 AM).
 
-1. Download or clone this repository.
-2. Double-click `index.html`. It opens in any modern browser. No install, account, server or internet connection is needed.
-3. Log in, sign up, or **Continue as a guest**, then choose your reviewer role on Home.
+## What it does
 
-To run the checks' tests (optional, needs Node.js): see [Tests](#tests).
+- **Tracks the person, turn by turn.** Goal, readiness, preferences and declined items. The newest statement wins.
+- **Runs 18 rule-based checks on every JARA reply.** They cover:
+  - goal pressure and drift;
+  - repetition;
+  - unsupported service details;
+  - missed crisis signs and unsafe advice;
+  - unnecessary refusals;
+  - diagnosis or medical advice instead of resources;
+  - missing or wrong-region resources;
+  - stigmatizing language;
+  - sycophancy;
+  - overconfidence.
+- **Explains every flag.** Each flag quotes JARA's exact words, names the turn, gives a reason, says how serious it is (critical or quality) and where JARA would need fixing.
+- **Shows an optional AI judge second opinion beside the rules.** It is clearly labelled as AI.
+- **Lets reviewers decide.** Reviewers answer Yes / No / Not sure, rate the reply, see others' average scores, and can suggest a better reply. Suggestions are labelled with the reviewer's role and never as AI.
+- **Exports the results.** Results export as JSON or CSV. Confirmed problems export as regression tests.
 
-## Supporting materials
+## How to access, set up and run
 
-- **Written summary:** [docs/project_summary.md](docs/project_summary.md) (250 words max) and [docs/about_the_project.md](docs/about_the_project.md) (600 words max).
-- **MCRC handover:** [docs/submission.md](docs/submission.md) answers SUBMISSION.txt.
-- **Dependencies and services:** [docs/dependencies_and_services.md](docs/dependencies_and_services.md).
-- **Limitations of the checks:** [docs/p1_checks_limitations.md](docs/p1_checks_limitations.md) and [docs/p2_checks_limitations.md](docs/p2_checks_limitations.md).
-- **Example exported findings:** [docs/example_export_CASE-01.json](docs/example_export_CASE-01.json).
-- **Scoring report:** [scoring/score_report.md](scoring/score_report.md).
-- **Visual guide:** inside the app (Home, then "See the step-by-step guide"), with screenshots in [guide/](guide/).
-- **Slides:** _[add link]_
+**Access.** Get the code from GitHub: <https://github.com/samia225/TrustyTalker>.
+```
+git clone https://github.com/samia225/TrustyTalker.git
+```
+You can also download the ZIP from GitHub (Code > Download ZIP) and unzip it.
+
+**Set up.** Nothing to install for the app itself.
+
+**Run the app.**
+1. Open the folder and double-click `index.html`. It opens in any modern browser (Chrome, Edge, Firefox, Safari). No server, account or internet connection is needed.
+2. Log in, sign up, or choose **Continue as a guest**. Then pick your reviewer role on Home.
+3. Press **Start reviewing**, or **Browse cases** to open any case. The in-app guide (Home, then "See the step-by-step guide") walks through each step.
+
+**Run the tests (optional).** These need [Node.js](https://nodejs.org) 18 or newer. There is no `npm install`. From the project folder:
+```
+node check_starter.js --exercise-goals
+node tests/test_p1_checks.js
+node scoring/score_report.js        # caught / missed / wrongly flagged, precision, recall
+```
+The full list is under [Tests](#tests).
+
+**Run the AI judge (optional, not needed for the app).**
+1. Put `OPENAI_API_KEY=...` in a `.env` file in the project folder. The file is gitignored; never commit a key.
+2. Run `node judge/run_judge.js --live`.
+
+Without a key, `node judge/run_judge.js` does a dry run with no network. Saved results are already included in `judge_results.js`.
+
+## Dependencies and hardware
+
+- **Hardware:** any laptop or desktop that can run a modern web browser. No special hardware was used or borrowed.
+- **The app:** no dependencies. Plain HTML, CSS and JavaScript, with no frameworks, packages, build step or CDN. Its Content-Security-Policy blocks all network calls.
+- **Tests and scoring:** Node.js 18 or newer, using built-in modules only (no packages).
+- **AI judge (optional):** the OpenAI API (gpt-4o-mini), with a restricted key and fictional, anonymised data only. Approved by MCRC.
+- **Details:** [docs/dependencies_and_services.md](docs/dependencies_and_services.md).
+
+## Slides and demonstration
+
+- **Slides:** [TrustyTalker presentation (Google Slides)](https://docs.google.com/presentation/d/1JGyxZ9rjJcRe2xCfBYWCW5StzpVJNszr/edit?usp=sharing&ouid=110349585327549657552&rtpof=true&sd=true)
 - **Demo video:** _[add link]_
+- **Live demo path:**
+  1. Open `index.html` and continue as a guest. Choose **Clinician** on Home.
+  2. Open CASE-10 ("Not ready to quit") from **Browse cases**.
+  3. Compare Example A and B. B's last reply is flagged, with the AI judge's opinion and reviewer suggestions underneath.
+  4. Press **Review this case**, answer Yes, and open **Others' scores**.
+  5. Finish on Results and download.
+- **Visual guide:** inside the app, with screenshots in [guide/](guide/).
+- **Example exported findings:** [docs/example_export_CASE-01.json](docs/example_export_CASE-01.json).
+
+## Written materials
+
+- **Project summary (250 words):** [docs/project_summary.md](docs/project_summary.md)
+- **About the project (600 words):** [docs/about_the_project.md](docs/about_the_project.md)
+- **MCRC handover:** [docs/submission.md](docs/submission.md), answering SUBMISSION.txt.
+- **What each check catches and misses:** [docs/p1_checks_limitations.md](docs/p1_checks_limitations.md) and [docs/p2_checks_limitations.md](docs/p2_checks_limitations.md).
+- **Scoring report:** [scoring/score_report.md](scoring/score_report.md) (rules, AI judge, and agreement between them).
+
+## Sources
+
+- **Problem and starter kit:** MCRC Health's JARA problem brief and starter kit (`base-code` tag, including `reference/support_choices.json`), and Tyler (MCRC)'s quality criteria and answers.
+- **Data:** every conversation is fictional.
+  - CASE-19 to CASE-21 are MCRC's own human-written scenarios.
+  - Cases marked `origin: "ai_drafted"` were drafted with AI, then read, fixed and labelled by the team.
+  - No real participant data is used.
+- **Research we drew on (ideas, not copied text):**
+  - Hawk et al. (2025), stigmatizing language terms.
+  - WHO digital health evaluation domains, for the adapted reviewer rating items (not a validated scale).
+  - The SIM-VAIL paper (Nature Medicine, 2026), for simulated users and validating an AI judge against people.
+- **Third-party code:** none is included.
 
 ## Credits
 
-- **Team TrustyTalker (natHacks 2026, Problem Provider Division):** Samia Rahman (team lead), Fatima Khalid, Ghala Abdulfattah, Mohammad Hossein Naiji.
-- **Problem provider:** MCRC Health. Tyler (MCRC) reviewed the labels and severity rules and supplied scenarios CASE-19 to CASE-21. The starter kit (`base-code` tag) and `reference/support_choices.json` are MCRC's.
-- **Research we drew on:** Hawk et al. (2025) for stigmatizing terms; WHO digital health evaluation domains for the reviewer rating items; the SIM-VAIL paper (Nature Medicine, 2026) for simulated users and judge validation.
-- **Rights:** all rights reserved by MCRC Health.
+- **Team TrustyTalker:**
+  - Samia Rahman (team lead)
+  - Fatima Khalid
+  - Ghala Abdulfattah
+  - Mohammad Hossein Naiji
+- **Problem provider:** MCRC Health. Tyler (MCRC) reviewed the labels and severity rules and supplied scenarios CASE-19 to CASE-21.
+- **Event:** natHacks 2026, University of Alberta.
 
 ## Repository layout
 
