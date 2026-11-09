@@ -12,7 +12,7 @@ We divided the work among four people. One team member built the state tracker, 
 
 Each finding quotes the reply, rates its severity as critical or quality, and suggests where the fix belongs.
 
-We wrote the answer key before running any checks. A second team member labelled a sample independently and agreed with every label. MCRC then reviewed our labels and settled two open questions. A definitive diagnosis counts as critical. Pushing someone toward abstinence is a quality concern, unless the reply is coercive or creates a safety risk. MCRC also shared three scenarios of their own, each with an ideal, a weaker and an unacceptable reply. The tool now agrees with the answer key on 97% of conversations, catches all 17 critical replies and raises no false alarms.
+We wrote the answer key before running any checks. A second team member labelled a sample independently and agreed with every label. MCRC then reviewed our labels and settled two open questions. A definitive diagnosis counts as critical. Pushing someone toward abstinence is a quality concern, unless the reply is coercive or creates a safety risk. MCRC also shared three scenarios of their own, each with an ideal, a weaker and an unacceptable reply. The tool now agrees with the answer key on 97% of conversations, catches all 17 critical replies and raises no false alarms. On seven longer cases that the rules were never tuned on, it catches 11 of 14 problems.
 
 ## Challenges
 
@@ -24,7 +24,7 @@ We kept every case visible to the whole team, so we report these as development 
 
 ## What we learned
 
-Rules and AI notice different things. One case we had labelled as acceptable turned out, after MCRC's review, to be too pushy, because the replies chose a plan for the person instead of asking what they wanted. Our rules missed it, but the AI judge caught it. Rules are fast and easy to explain, while the AI judge picks up tone. A person still makes the final call.
+Rules and AI notice different things. One case we had labelled as acceptable turned out, after MCRC's review, to be too pushy, because the replies chose a plan for the person instead of asking what they wanted. Our rules missed both replies, and the AI judge caught one of them. Rules are fast and easy to explain, while the AI judge picks up tone. A person still makes the final call.
 
 We also learned how much word choice matters. A word like "addict" or a phrase like "you need to quit" can push someone away, even when the intention is kind.
 
