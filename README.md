@@ -21,7 +21,9 @@ ui/         timeline.js (loaded by index.html); review.js is NOT loaded (unused:
 tests/      test_state_tracker.js, test_p1_checks.js, test_validate.js, test_p2_checks.js, expected.js (expected labels),
             second_labeller_sheet.md
 judge/      AI judge script (Node only, separate from the page), criteria.md, examples.js
-docs/       limitations and write-ups
+docs/       submission.md (MCRC checklist and answers), project_summary.md, about_the_project.md,
+            p1/p2_checks_limitations.md, dependencies_and_services.md,
+            example_export_CASE-01.json (a mismatch and a non-mismatch)
 handoff/    test cases handed to Person 4 (already added to data.js)
 ```
 
