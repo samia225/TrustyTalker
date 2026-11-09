@@ -43,7 +43,28 @@ function loadAll() {
   const judgeFile = path.join(ROOT, "judge_results.js");
   let judge = null;
   if (fs.existsSync(judgeFile)) { const w = {}; new Function("window", fs.readFileSync(judgeFile, "utf8"))(w); judge = w.JUDGE_RESULTS || null; }
-  return { data, coreIds, checks, labels: { core: core.filter(v => !extraLabels.some(x => x.variant_id === v.variant_id)), extra: extraLabels }, judge };
+  return { data, coreIds, checks, labels: { core: core.filter(v => !extraLabels.some(x => x.variant_id === v.variant_id)), extra: extraLabels }, judge, heldout: loadHeldout() };
+}
+
+// Held-out cases (final scoring only; never loaded by the page or the AI judge).
+// Each .js file in tests/heldout/ exports { cases: [...same shape as data.js...], labels:
+// [...same shape as tests/expected.js...] }. Written and labelled by someone who does not
+// write rules, before any check is run on them. Problems are reported, never thrown.
+function loadHeldout(dir = path.join(ROOT, "tests", "heldout")) {
+  const out = { files: [], cases: [], labels: [], problems: [] };
+  if (!fs.existsSync(dir)) return out;
+  for (const name of fs.readdirSync(dir).filter(n => n.endsWith(".js")).sort()) {
+    try {
+      const loaded = require(path.join(dir, name));
+      if (!loaded || !Array.isArray(loaded.cases) || !Array.isArray(loaded.labels)) { out.problems.push(name + ": must export { cases: [...], labels: [...] }"); continue; }
+      out.files.push(name);
+      out.cases.push(...loaded.cases);
+      out.labels.push(...loaded.labels);
+    } catch (error) { out.problems.push(name + ": " + error.message); }
+  }
+  const validate = loadIfExists("engine/validate.js");
+  if (validate && out.cases.length) for (const e of validate.validateCases({ cases: out.cases }).errors) out.problems.push(e.where + ": " + e.problem);
+  return out;
 }
 
 const pct = (a, b) => b ? Math.round((a / b) * 1000) / 10 : null;
@@ -162,10 +183,10 @@ function reviewerSummary(files) {
 
 // ---- Report ----------------------------------------------------------------
 function build(args = []) {
-  const { data, checks, labels, judge } = loadAll();
+  const { data, checks, labels, judge, heldout } = loadAll();
   const implemented = new Set(checks.checks.filter(c => c.implemented).map(c => c.id));
   const variants = new Map();
-  for (const c of data.cases) for (const v of c.variants) variants.set(v.id, Object.assign({ case: c }, v));
+  for (const c of data.cases.concat(heldout.cases)) for (const v of c.variants || []) variants.set(v.id, Object.assign({ case: c }, v));
   const ruleCache = new Map();
   const ruleFlags = v => {
     if (!ruleCache.has(v.id)) ruleCache.set(v.id, checks.runChecks(v.case, v).map(h => ({ turn_id: h.turn_id, check_id: h.check_id, severity: h.severity, confidence: h.confidence })));
@@ -174,11 +195,19 @@ function build(args = []) {
   const judgeById = new Map(((judge && judge.results) || []).map(r => [r.variant_id, r]));
   const judgeFlags = v => judgeById.has(v.id) ? judgeById.get(v.id).hints.map(h => ({ turn_id: h.turn_id, check_id: h.check_id, severity: h.severity, confidence: h.confidence })) : null;
   const sets = { "Labelled cases (team, tests/expected.js)": labels.core, "Extra AI-drafted cases (draft labels, tests/expected_extra.js)": labels.extra };
+  const HELDOUT = "Held-out cases (tests/heldout/, final scoring only)";
+  if (heldout.labels.length) sets[HELDOUT] = heldout.labels;
   const out = {
     generated_at: new Date().toISOString(),
     note: "Rule-based checks and the AI judge verified against labelled FICTIONAL cases. Extra cases are AI-drafted with draft labels until a teammate reviews them. Not clinical validation.",
     implemented_checks: [...implemented], not_evaluated_checks: checks.checks.filter(c => !c.implemented).map(c => c.id),
     judge: judge ? { status: judge.status, model: judge.settings && judge.settings.model, prompt_version: judge.prompt_version } : null,
+    // Rules were not changed to fit the extra cases, so until tests/heldout/ is filled they are
+    // the closest thing to an untuned result (still development numbers, not held-out).
+    untuned_set: "Extra AI-drafted cases (draft labels, tests/expected_extra.js)",
+    heldout: heldout.labels.length
+      ? { status: "scored", files: heldout.files, conversations: heldout.labels.length, problems: heldout.problems }
+      : { status: "not_run", note: "tests/heldout/ has no labelled cases yet, so there is no held-out result.", problems: heldout.problems },
     sets: {}
   };
   for (const [name, set] of Object.entries(sets)) {
@@ -200,8 +229,10 @@ function markdown(r) {
   const L = [];
   L.push("# TrustyTalker scoring report", "", "Generated " + r.generated_at + ".", "", "_" + r.note + "_", "");
   if (r.not_evaluated_checks.length) L.push("Not evaluated (unfinished checks): " + r.not_evaluated_checks.join(", ") + ".", "");
+  if (r.heldout && r.heldout.status === "not_run") L.push("**Held-out result: not run.** " + r.heldout.note + " The extra AI-drafted cases are the closest untuned check (rules were not changed to fit them).", "");
+  if (r.heldout && r.heldout.problems && r.heldout.problems.length) L.push("Held-out file problems: " + r.heldout.problems.join("; ") + ".", "");
   for (const [name, s] of Object.entries(r.sets)) {
-    L.push("## " + name, "", s.conversations + " conversations.", "");
+    L.push("## " + name, "", s.conversations + " conversations." + (name === r.untuned_set ? " Rules were not tuned on these cases." : ""), "");
     for (const [who, sc] of [["Rule checks", s.rules], ["AI judge" + (r.judge ? " (" + r.judge.model + ")" : ""), s.ai_judge]]) {
       if (!sc) continue;
       L.push("### " + who, "");
@@ -253,7 +284,9 @@ if (require.main === module) {
     console.log("  rules    caught " + s.rules.caught_on_turn + "/" + s.rules.labelled_problems + " (" + s.rules.critical_caught + "/" + s.rules.critical + " critical), wrongly flagged " + s.rules.fine_replies_flagged + "/" + s.rules.fine_replies);
     if (s.ai_judge) console.log("  AI judge caught " + s.ai_judge.caught_on_turn + "/" + s.ai_judge.labelled_problems + " (" + s.ai_judge.critical_caught + "/" + s.ai_judge.critical + " critical), wrongly flagged " + s.ai_judge.fine_replies_flagged + "/" + s.ai_judge.fine_replies + (s.ai_judge.conversations_not_judged ? ", " + s.ai_judge.conversations_not_judged + " not judged" : ""));
   }
+  if (report.heldout.status === "not_run") console.log("Held-out: not run (" + report.heldout.note + ")");
+  if (report.heldout.problems.length) console.log("Held-out file problems: " + report.heldout.problems.join("; "));
   if (report.reviewers) console.log("Reviewers: " + report.reviewers.reviewer_answers + " answers from " + report.reviewers.files.length + " file(s).");
   console.log("Wrote scoring/score_report.md and scoring/score_report.json");
 }
-module.exports = { build, markdown, score, agreement, reviewerSummary };
+module.exports = { build, markdown, score, agreement, reviewerSummary, loadHeldout };

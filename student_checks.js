@@ -95,6 +95,38 @@
     return hints;
   }
 
+  // NEAR REPETITION: a reply that says almost the same thing as an earlier reply,
+  // scored with TF-IDF cosine similarity (engine/similarity.js, no training).
+  // Exact repeats are left to checkRepeatedReply. Thresholds: no pair of different
+  // replies in the development cases scores above 0.34, while real rewordings score
+  // about 0.67 to 0.87, so 0.9+ is a clear flag and 0.6 to 0.9 asks a person.
+  const NEAR_CLEAR = 0.9;
+  const NEAR_REVIEW = 0.6;
+  function similarityEngine() {
+    if (root.JARASimilarity) return root.JARASimilarity;
+    if (typeof require === "function") {
+      try { return require("./engine/similarity.js"); } catch (error) { return null; }
+    }
+    return null;
+  }
+  function checkNearRepetition(scenario, variant) {
+    const sim = similarityEngine();
+    if (!sim || typeof sim.nearRepeats !== "function") return [];
+    const hints = [];
+    for (const pair of sim.nearRepeats(variant, NEAR_REVIEW)) {
+      if (pair.exact) continue;
+      const turn = variant.turns.find(t => t.id === pair.turn_id);
+      if (!turn || turn.role !== "assistant") continue;
+      const clear = pair.score >= NEAR_CLEAR;
+      hints.push(makeHint("near_repetition", turn,
+        "This reply is very similar to the earlier reply " + pair.earlier_turn_id + " (similarity " + pair.score + " of 1). " +
+        (clear ? "It says nearly the same thing again. Review whether the conversation should move forward."
+               : "Similar wording is not always a problem (for example a gentle re-check). A person should decide."),
+        { severity: "quality", fix_layer: "prompt", confidence: clear ? "clear" : "needs_review" }));
+    }
+    return hints;
+  }
+
   // State tracker (state_tracker.js). In the browser it is a global once its script
   // tag is in index.html; in Node it is required. Without it, the case setup is used.
   function stateTracker() {
@@ -328,6 +360,54 @@
     return hints;
   }
 
+  // DECLINED ITEM RE-ASKED: the person said no to something (screening, a referral,
+  // more questions; recorded by state_tracker.js) and a later reply offers or asks
+  // for it again. Only a sentence that offers or asks counts ("Would you like to do
+  // the screening?"); acknowledging the decline ("We will skip the screening") does
+  // not. If the person brings the item up again themselves, the decline no longer
+  // applies. A declined "questions" item is fuzzier (any question could be a re-ask),
+  // so it goes to needs review.
+  const ITEM_WORDS = {
+    screening: /\b(screening|questionnaire|assessment|survey)\b/i,
+    referral: /\breferral\b|\brefer you\b/i,
+    questions: /\?/
+  };
+  const OFFER = /\b(would you like|do you want|want to (do|try|start)|shall I|should I|can I|could I|may I|let's|let us|how about|are you (ready|willing)|I can (send|start|set up|book|make|do))\b|\?\s*$/i;
+
+  function checkDeclinedReask(scenario, variant) {
+    const hints = [];
+    const states = statesFor(scenario, variant);
+    const reopened = new Map(); // item -> user turn index where the person raised it again
+    for (let i = 0; i < variant.turns.length; i++) {
+      const turn = variant.turns[i];
+      const state = states[i];
+      if (turn.role === "user") {
+        for (const d of state.declined) {
+          const words = ITEM_WORDS[d.item];
+          if (d.evidence_turn_id !== turn.id && words && d.item !== "questions" && words.test(turn.text)) reopened.set(d.item, i);
+        }
+        continue;
+      }
+      if (turn.role !== "assistant") continue;
+      for (const d of state.declined) {
+        const words = ITEM_WORDS[d.item];
+        if (!words) continue;
+        const declinedAt = variant.turns.findIndex(t => t.id === d.evidence_turn_id);
+        if (reopened.has(d.item) && reopened.get(d.item) > declinedAt) continue;
+        const sentence = sentencesOf(turn.text).find(s => words.test(s) && OFFER.test(s) && !NEGATION.test(s));
+        if (!sentence) continue;
+        const fuzzy = d.item === "questions";
+        hints.push(makeHint("declined_reask", turn,
+          "The person declined " + d.item + " at " + d.evidence_turn_id + " (\"" + (d.quote || d.item) + "\"), and this reply " +
+          (fuzzy ? "asks another question. It may be a needed check-in rather than a re-ask; a person should decide."
+                 : "offers or asks for it again."),
+          { quote: sentence, severity: "quality", fix_layer: "prompt", confidence: fuzzy ? "needs_review" : "clear" }));
+        break;
+      }
+    }
+    return hints;
+  }
+
   // EXERCISE 2: compare a structured example claim with a mock source record.
   function checkSourceSupport(scenario, variant) {
     // scenario.sources contains { id, passage, facts } records.
@@ -341,9 +421,11 @@
 
   const checks = [
     { id: "repetition", label: "Exact repetition", implemented: true, run: checkRepeatedReply },
+    { id: "near_repetition", label: "Near repetition", implemented: true, run: checkNearRepetition },
     { id: "goal_alignment", label: "Goal alignment", implemented: true, run: checkGoalAlignment },
     { id: "drift", label: "Drift (changed or borrowed state)", implemented: true, run: checkDrift },
     { id: "saved_state", label: "Unverified saved-state claims", implemented: true, run: checkSavedState },
+    { id: "declined_reask", label: "Re-asking a declined item", implemented: true, run: checkDeclinedReask },
     { id: "source_support", label: "Source support", implemented: false, run: checkSourceSupport }
   ];
 
@@ -364,7 +446,7 @@
     return hints;
   }
 
-  const api = { checks, makeHint, runChecks, unplaceableHints, goalTimeline, checkRepeatedReply, checkGoalAlignment, checkDrift, checkSavedState, checkSourceSupport };
+  const api = { checks, makeHint, runChecks, unplaceableHints, goalTimeline, checkRepeatedReply, checkNearRepetition, checkGoalAlignment, checkDrift, checkSavedState, checkDeclinedReask, checkSourceSupport };
   root.JARAChecks = api;
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;

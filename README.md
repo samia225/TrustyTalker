@@ -12,15 +12,18 @@ Open `index.html` by double-clicking it. No install, account or server is needed
 (root)      MCRC starter files. They stay here with their original names:
             index.html, app.js, data.js, student_checks.js, styles.css,
             check_starter.js, package.json, MANIFEST.json, *.txt, reference/
-engine/     state_tracker.js (goal, readiness, preferences per turn), similarity.js (TF-IDF)
+engine/     state_tracker.js (goal, readiness, preferences per turn), similarity.js (TF-IDF),
+            validate.js (case checks before the checks run; validateHint for every flag)
 checks/     extra rule-based checks: checks_common.js, checks_sources.js,
             checks_safety.js, checks_quality.js
-ui/         timeline.js, review.js: NOT loaded by index.html (unused; the timeline
-            and reviewer panel the page shows are built in app.js)
-tests/      test_state_tracker.js, test_p1_checks.js, test_p2_checks.js, expected.js (expected labels),
+ui/         timeline.js (loaded by index.html); review.js is NOT loaded (unused:
+            the reviewer panel the page shows is built in app.js)
+tests/      test_state_tracker.js, test_p1_checks.js, test_validate.js, test_p2_checks.js, expected.js (expected labels),
             second_labeller_sheet.md
 judge/      AI judge script (Node only, separate from the page), criteria.md, examples.js
-docs/       limitations and write-ups
+docs/       submission.md (MCRC checklist and answers), project_summary.md, about_the_project.md,
+            p1/p2_checks_limitations.md, dependencies_and_services.md,
+            example_export_CASE-01.json (a mismatch and a non-mismatch)
 handoff/    test cases handed to Person 4 (already added to data.js)
 ```
 
@@ -33,6 +36,9 @@ node check_starter.js
 node check_starter.js --exercise-goals
 node check_starter.js --exercise-sources
 node tests/test_state_tracker.js
+node tests/test_p1_checks.js
+node tests/test_validate.js
+node tests/run_regression.js      # past failures + reviewer exports in tests/regressions/*.json
 node tests/test_p2_checks.js
 node judge/test_run_judge.js
 ```

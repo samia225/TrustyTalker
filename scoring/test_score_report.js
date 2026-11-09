@@ -65,4 +65,28 @@ test("Reviewer summary: averages per item and per reviewer type, two-reviewer ag
   } finally { fs.rmSync(file, { force: true }); }
 });
 
+test("No held-out cases yet: the report says 'not run' instead of giving a number", () => {
+  if (fs.existsSync(path.join(__dirname, "..", "tests", "heldout")) &&
+      fs.readdirSync(path.join(__dirname, "..", "tests", "heldout")).some(n => n.endsWith(".js"))) return; // filled later: skip
+  assert.equal(report.heldout.status, "not_run");
+  assert.ok(!Object.keys(report.sets).some(n => /Held-out/.test(n)));
+  assert.match(scoring.markdown(report), /Held-out result: not run/);
+});
+
+test("Held-out files are loaded from their folder; a broken file is reported, not thrown", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "heldout-"));
+  try {
+    const good = { cases: [{ id: "HO-01", goal: "information", readiness: "not_supplied", sources: [],
+      variants: [{ id: "HO-01-A", turns: [{ id: "HO-01-A-U1", role: "user", text: "Hi." }, { id: "HO-01-A-A1", role: "assistant", text: "Hello." }] }] }],
+      labels: [{ variant_id: "HO-01-A", flags: [] }] };
+    fs.writeFileSync(path.join(dir, "a_good.js"), "module.exports = " + JSON.stringify(good) + ";");
+    fs.writeFileSync(path.join(dir, "b_wrong.js"), "module.exports = { cases: 1 };");
+    const h = scoring.loadHeldout(dir);
+    assert.deepEqual(h.files, ["a_good.js"]);
+    assert.equal(h.cases.length, 1);
+    assert.equal(h.labels.length, 1);
+    assert.match(h.problems.join(" "), /b_wrong\.js: must export/);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
 console.log("\n" + passed + " scoring tests passed.");
