@@ -6,7 +6,7 @@ When someone reaches out about drinking or drug use, the first response matters.
 
 ## How we built it
 
-TrustyTalker is a plain HTML and JavaScript page. It needs no installation or internet connection and never sends a conversation anywhere. All conversations are fictional.
+Our development reports planned TypeScript and React, but MCRC's kit required plain JavaScript, so we kept the design and changed tools. TrustyTalker is a plain HTML and JavaScript page. It needs no installation or internet connection and never sends a conversation anywhere. All conversations are fictional.
 
 We divided the work among four people. One team member built the state tracker, which follows each person's goal, readiness and preferences, along with the goal alignment, drift and saved-state checks. Another built the safety and quality checks, including crisis response, unsafe advice, scope, respectful language and sycophancy, as well as an optional AI judge. A third designed the interface, which compares a good and a poor reply side by side and lets a reviewer confirm or reject each finding. The fourth wrote the test cases and the answer key.
 
