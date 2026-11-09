@@ -16,8 +16,8 @@ engine/     state_tracker.js (goal, readiness, preferences per turn), similarity
             validate.js (case checks before the checks run; validateHint for every flag)
 checks/     extra rule-based checks: checks_common.js, checks_sources.js,
             checks_safety.js, checks_quality.js
-ui/         timeline.js, review.js: NOT loaded by index.html (unused; the timeline
-            and reviewer panel the page shows are built in app.js)
+ui/         timeline.js (loaded by index.html); review.js is NOT loaded (unused:
+            the reviewer panel the page shows is built in app.js)
 tests/      test_state_tracker.js, test_p1_checks.js, test_validate.js, test_p2_checks.js, expected.js (expected labels),
             second_labeller_sheet.md
 judge/      AI judge script (Node only, separate from the page), criteria.md, examples.js
