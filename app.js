@@ -75,6 +75,8 @@
 
   function selectedCase() { return data.cases.find(item => item.id === select.value); }
   function pretty(value) { return String(value).replaceAll("_", " "); }
+  // Same as pretty(), with a capital first letter, for text people pick from (dropdowns).
+  function sentence(value) { const t = pretty(value); return t.charAt(0).toUpperCase() + t.slice(1); }
 
   // ---- Confidence badges -------------------------------------------------
   // A hint is "Needs reviewer" when the check marks it as uncertain. Agreed field
@@ -1515,7 +1517,7 @@
       wrap.append(l, sel);
       return wrap;
     };
-    const goals = Array.from(new Set(data.cases.map(c => c.goal).filter(Boolean))).map(g => [g, pretty(g)]);
+    const goals = Array.from(new Set(data.cases.map(c => c.goal).filter(Boolean))).map(g => [g, sentence(g)]);
     const problems = Array.from(new Set(gridRows.flatMap(r => r.checks))).map(c => [c, plainName(c)]).sort((a, b) => a[1].localeCompare(b[1]));
     tools.append(searchWrap, pick("case-goal", "Person's goal", goals, "Any goal"), pick("case-problem", "Problem flagged", problems, "Any problem"));
     const sortWrap = pick("case-sort", "Sort by", [["relevant", "Most relevant (safety first)"], ["newest", "Newest first"], ["oldest", "Oldest first"],
@@ -3045,7 +3047,7 @@
     const box = document.getElementById(selectId);
     box.replaceChildren();
     for (const value of values) {
-      const option = element("option", pretty(value));
+      const option = element("option", sentence(value));
       option.value = value;
       box.append(option);
     }
