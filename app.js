@@ -3240,6 +3240,7 @@
     [null, () => "For each reply, read the conversation, choose Yes, No or Not sure, and write one sentence on why."],
     ['[data-nav="results"]', () => "When you're done, open Results and download your work as JSON or CSV."],
     ["#overview-add-case", () => "You can also browse every case and add your own fictional case here."],
+    [".nav-about", () => "Want to know what TrustyTalker checks and how well it works? Open About."],
     ["#view-overview .page-help-more a", () => "Want pictures? The step-by-step guide is here. Have fun reviewing!"]
   ];
   let tipIndex = 0;
@@ -3311,7 +3312,7 @@
   // Three pages share this one file: all cases, the conversation and the
   // findings. The address ends in #cases, #conversation or #findings, so the
   // browser's own Back button works and each page can be linked to.
-  const VIEWS = { welcome: "Welcome", guide: "Visual guide", overview: "Home", review: "Review", results: "Results", cases: "Browse cases", conversation: "Conversation", findings: "Case findings" };
+  const VIEWS = { welcome: "Welcome", guide: "Visual guide", about: "About", overview: "Home", review: "Review", results: "Results", cases: "Browse cases", conversation: "Conversation", findings: "Case findings" };
   const HERO = {
     overview: ["Review JARA's replies", "Automatic checks flag replies that may ignore what the person asked for. You decide whether each one is a real problem."],
     review: ["Review", "Read the highlighted reply in its conversation, then choose Yes, No or Not sure. Add one sentence on why."],
@@ -3320,7 +3321,8 @@
     conversation: ["Compare two conversations", "Two possible conversations for the same person. Flagged replies are marked in red."],
     findings: ["Findings in this case", "Every finding for the case you opened."],
     welcome: ["Welcome to TrustyTalker", "Check JARA's replies and decide whether each one is a real problem."],
-    guide: ["How to use TrustyTalker", "Step by step, with pictures. It takes about 5 minutes the first time."]
+    guide: ["How to use TrustyTalker", "Step by step, with pictures. It takes about 5 minutes the first time."],
+    about: ["About TrustyTalker", "What it is, how it works, and what it is not."]
   };
   let currentView = "overview";
   function viewFromHash() {

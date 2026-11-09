@@ -47,6 +47,7 @@
         <li><a href="#results" data-nav="results"><span class="nav-num" aria-hidden="true">3</span>Results</a></li>
       </ol>
       <a class="nav-browse" href="#cases" data-nav="cases">Browse cases</a>
+      <a class="nav-browse nav-about" href="#about" data-nav="about">About</a>
       <div class="account" id="account" aria-label="Your account"></div>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
     </nav>
@@ -285,6 +286,61 @@
         </li>
         </ol>
       </section>
+    </div>
+
+    <!-- ABOUT: what TrustyTalker is, how it works, what it is not -->
+    <div class="view" data-view="about" id="view-about" hidden>
+      <div class="view-bar"><a class="back-button" href="#overview">Back to Home</a></div>
+      <div class="about-grid">
+        <section class="about-card about-wide" aria-labelledby="about-what">
+          <h2 id="about-what">What TrustyTalker is</h2>
+          <p>JARA is MCRC Health's research-stage support and resource-navigation chatbot for adults with substance use and mental health concerns. It is non-diagnostic and non-prescriptive. Some of its replies sound supportive but miss what the person asked for: pushing someone to quit when they only wanted information, forgetting an earlier preference, stating something its sources do not support, or missing signs of risk.</p>
+          <p>TrustyTalker finds those replies in fictional conversations, before a real person ever sees them. It is built for JARA's developers, researchers and clinical reviewers.</p>
+        </section>
+
+        <section class="about-card" aria-labelledby="about-how">
+          <h2 id="about-how">How it works</h2>
+          <ol class="about-steps">
+            <li><strong>Follows the person.</strong> At every turn it tracks what the person has said: their goal, readiness to change, preferences and anything they declined. The newest statement wins.</li>
+            <li><strong>Runs rule-based checks.</strong> 16 checks look at each JARA reply. Every flag quotes JARA's exact words, names the turn, explains why, and says how serious it is (critical or quality) and where JARA would need fixing.</li>
+            <li><strong>Gets a second opinion.</strong> An optional AI judge reviewed the same fictional conversations ahead of time. Where it and the rules disagree, the reply needs a closer look.</li>
+            <li><strong>A person decides.</strong> Reviewers answer Yes, No or Not sure for each flag. Confirmed problems become regression tests, rerun after every change to JARA.</li>
+          </ol>
+        </section>
+
+        <section class="about-card" aria-labelledby="about-checks">
+          <h2 id="about-checks">What it checks</h2>
+          <ul class="about-list">
+            <li><strong>Fit with the person:</strong> pushing a goal they did not choose, holding on to an old goal, treating someone else's words as theirs, re-asking something they declined.</li>
+            <li><strong>Safety:</strong> missed signs of risk, unsafe advice, refusing safety information such as where to get naloxone, agreeing with a risky belief.</li>
+            <li><strong>Staying in role:</strong> diagnosing, prescribing or giving medical advice instead of providing resources, and overstating confidentiality.</li>
+            <li><strong>Accuracy:</strong> service details its sources do not support, claims that something was saved, overconfident promises.</li>
+            <li><strong>Conversation quality:</strong> repeating itself, advice before asking enough, stigmatizing language.</li>
+          </ul>
+        </section>
+
+        <section class="about-card" aria-labelledby="about-results">
+          <h2 id="about-results">How well it works so far</h2>
+          <p>On 59 labelled fictional conversations, the rules found 42 of 44 problem replies, including all 17 critical ones, and flagged none of the fine replies. The two misses were mildly pushy replies that only the AI judge caught.</p>
+          <p class="muted">These are development results: the team saw every case while writing the rules. Clinician review is the next step.</p>
+        </section>
+
+        <section class="about-card about-limits" aria-labelledby="about-not">
+          <h2 id="about-not">What it is not</h2>
+          <ul class="about-list">
+            <li>Not a clinical tool. It never diagnoses, scores or approves anything.</li>
+            <li>Flags are suggestions. A person makes every decision.</li>
+            <li>No flags does not mean a reply is safe: rules can miss things.</li>
+            <li>Fictional data only. No real conversations or personal information.</li>
+            <li>Runs on this computer. The page has no server, database or AI connection.</li>
+          </ul>
+        </section>
+
+        <section class="about-card about-wide" aria-labelledby="about-who">
+          <h2 id="about-who">Who made it</h2>
+          <p>Built at natHacks 2026 for MCRC Health by a team of four. All rights reserved by MCRC Health. New here? <a href="#guide" data-guide-step="1">See the step-by-step guide with pictures</a>.</p>
+        </section>
+      </div>
     </div>
 
     <!-- 1. OVERVIEW: what to do, in three stages (like a review summary page) -->
