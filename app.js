@@ -240,6 +240,8 @@
       const section = element("section", undefined, "variant");
       section.setAttribute("aria-label", variant.label);
       section.append(element("h3", variant.label));
+      // Turn timeline (ui/timeline.js): one circle per turn, coloured after the checks run.
+      if (window.JARATimeline) section.append(window.JARATimeline.render(scenario, variant));
       const state = statePanel(scenario, variant);
       if (state) {
         const more = element("details", undefined, "rv-state conv-state");
@@ -291,6 +293,7 @@
     clearPrototype();
     document.querySelectorAll(".turn.flagged").forEach(node => node.classList.remove("flagged", "flagged-review"));
     clearQuoteMarks();
+    if (window.JARATimeline) window.JARATimeline.reset();
     const judgeBox = document.getElementById("judge-compare");
     if (judgeBox) judgeBox.replaceChildren();
     report = null;
@@ -352,6 +355,12 @@
         }
       }
       markQuotes(results);
+      if (window.JARATimeline) {
+        for (const variant of scenario.variants) {
+          const result = results.find(r => r.variant_id === variant.id);
+          window.JARATimeline.paint(variant, result ? result.hints : [], confidenceOf);
+        }
+      }
       addTurnComments();
       renderSummary(scenario, results);
       renderJudgeComparison(scenario, results);
