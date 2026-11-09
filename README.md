@@ -1,5 +1,7 @@
 # TrustyTalker
 
+**Live demo:** <https://samia225.github.io/TrustyTalker/> (opens in the browser, nothing to install)
+
 **Slides:** [TrustyTalker presentation (Google Slides)](https://docs.google.com/presentation/d/1JGyxZ9rjJcRe2xCfBYWCW5StzpVJNszr/edit?usp=sharing&ouid=110349585327549657552&rtpof=true&sd=true)
 
 TrustyTalker is a review tool for MCRC Health's JARA, a non-diagnostic support and resource-navigation chatbot for adults with substance use and mental health concerns. It reads fictional JARA conversations, keeps track of what the person has said (their goal, readiness to change, preferences and anything they declined), and flags JARA replies that do not fit, for example pushing someone to quit when they only asked for information. A human reviewer then decides whether each flag is a real problem.
@@ -27,7 +29,9 @@ Built at natHacks 2026 (Problem Provider Division) for MCRC Health. All rights r
 
 ## How to access, set up and run
 
-**Access.** Get the code from GitHub: <https://github.com/samia225/TrustyTalker>.
+**Access online.** Open the live demo: <https://samia225.github.io/TrustyTalker/>. It runs entirely in your browser; your answers stay on your computer.
+
+**Access the code.** Get it from GitHub: <https://github.com/samia225/TrustyTalker>.
 ```
 git clone https://github.com/samia225/TrustyTalker.git
 ```
@@ -64,9 +68,10 @@ Without a key, `node judge/run_judge.js` does a dry run with no network. Saved r
 
 ## Slides and demonstration
 
+- **Live demo:** <https://samia225.github.io/TrustyTalker/>
 - **Slides:** [TrustyTalker presentation (Google Slides)](https://docs.google.com/presentation/d/1JGyxZ9rjJcRe2xCfBYWCW5StzpVJNszr/edit?usp=sharing&ouid=110349585327549657552&rtpof=true&sd=true)
 - **Live demo path:**
-  1. Open `index.html` and continue as a guest. Choose **Clinician** on Home.
+  1. Open the live demo (or `index.html`) and continue as a guest. Choose **Clinician** on Home.
   2. Open CASE-10 ("Not ready to quit") from **Browse cases**.
   3. Compare Example A and B. B's last reply is flagged, with the AI judge's opinion and reviewer suggestions underneath.
   4. Press **Review this case**, answer Yes, and open **Others' scores**.
