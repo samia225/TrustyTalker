@@ -123,6 +123,37 @@ test("Saved-state: with application-state observations present, the claim goes t
   assert.equal(hints[0].confidence, "needs_review");
 });
 
+// ---- Near repetition
+function replies(...texts) {
+  const turns = [];
+  texts.forEach((text, i) => {
+    turns.push({ id: "PRACTICE-U" + (i + 1), role: "user", text: "Okay." });
+    turns.push({ id: "PRACTICE-A" + (i + 1), role: "assistant", text });
+  });
+  return { scenario: { id: "PRACTICE", goal: "undecided", readiness: "not_supplied", sources: [] }, variant: { id: "PRACTICE-A", turns } };
+}
+test("Near repetition: almost the same reply again is a clear flag", () => {
+  const hints = run(C.checkNearRepetition, replies("What would you like to focus on today?", "What would you like to focus on today, then?"));
+  assert.equal(hints.length, 1);
+  assert.equal(hints[0].turn_id, "PRACTICE-A2");
+  assert.equal(hints[0].confidence, "clear");
+  assert.match(hints[0].reason, /PRACTICE-A1/);
+});
+test("Near repetition: a reworded re-ask goes to needs review", () => {
+  const hints = run(C.checkNearRepetition, replies("Could you tell me how often you drink in a usual week?", "Can you tell me how often you drink in a typical week?"));
+  assert.equal(hints.length, 1);
+  assert.equal(hints[0].confidence, "needs_review");
+});
+test("Near repetition near-misses: exact repeats and different questions are left to others / alone", () => {
+  assert.deepEqual(run(C.checkNearRepetition, replies("How often do you drink?", "How has your sleep been?")), []);
+  assert.deepEqual(run(C.checkNearRepetition, replies("Same words here.", "Same words here.")), []);
+});
+test("Near repetition flags nothing in the development cases", () => {
+  for (const scenario of data.cases) for (const v of scenario.variants) {
+    assert.deepEqual(C.checkNearRepetition(scenario, v), [], v.id);
+  }
+});
+
 // ---- Every new hint keeps the REFERENCE.txt contract
 test("Drift and saved-state hints quote their assistant turn word for word", () => {
   for (const scenario of data.cases) for (const variant of scenario.variants) {
