@@ -1119,7 +1119,8 @@
     return {
       status, reviewers: n, needed: MIN_REVIEWERS, final: status === "agreed_problem" || status === "agreed_fine",
       // No names: role and decision only.
-      decisions: list.map(r => ({ decision: r.decision, reviewer_role: r.reviewer_role || null, reviewed_at: r.reviewed_at || null })),
+      decisions: list.map(r => ({ decision: r.decision, reviewer_role: r.reviewer_role || null, reviewed_at: r.reviewed_at || null,
+        ratings: r.ratings && Object.keys(r.ratings).length ? r.ratings : undefined, demo: r.demo ? true : undefined })),
       _list: list
     };
   }
@@ -3592,6 +3593,49 @@
     if (currentView === "review") renderReview(true); else navigate("review");
   });
   document.getElementById("export-regressions").addEventListener("click", downloadAllRegressions);
+  // ---- Demo reviews (fictional) ---------------------------------------------
+  // Six FICTIONAL reviewers (2 clinicians, 2 peer support, 1 researcher, 1 developer) answer
+  // and rate a share of the findings, so review counts, "Others' scores", admin alerts and
+  // scoring/score_report.js have numbers to show in a demo. Every answer is marked demo: true,
+  // the reason says it is a demo, and one click removes them all. Not real reviews.
+  const DEMO_REVIEWERS = [["demo-1", "clinician"], ["demo-2", "clinician"], ["demo-3", "peer"], ["demo-4", "peer"], ["demo-5", "researcher"], ["demo-6", "developer"]];
+  function hasDemoReviews() { try { return DEMO_REVIEWERS.some(([id]) => localStorage.getItem("tt-reviews:" + id) !== null); } catch (error) { return false; } }
+  function seeded(n) { let s = n; return () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; }; }
+  function loadDemoReviews() {
+    const labelled = new Set();
+    for (const v of window.EXPECTED_LABELS || []) for (const f of v.flags || []) labelled.add(f.turn_id + "|" + f.check_id);
+    const queue = buildQueue();
+    DEMO_REVIEWERS.forEach(([id, role], i) => {
+      const rand = seeded(1000 + i * 7919);
+      const entries = [];
+      for (const item of queue) {
+        if (!canReview(item.hint, role) || rand() < 0.35) continue; // not everyone reviews everything
+        const problem = labelled.has(item.hint.turn_id + "|" + item.hint.check_id);
+        const r = rand();
+        const decision = problem ? (r < 0.82 ? "confirmed" : r < 0.92 ? "unsure" : "rejected") : (r < 0.7 ? "rejected" : r < 0.85 ? "unsure" : "confirmed");
+        const base = decision === "confirmed" ? 2 : decision === "rejected" ? 4 : 3;
+        const ratings = {};
+        for (const [rid] of RATING_ITEMS) {
+          const x = rand();
+          ratings[rid] = x < 0.08 ? "na" : Math.max(1, Math.min(5, base + (x < 0.35 ? -1 : x > 0.75 ? 1 : 0)));
+        }
+        entries.push([item.key, { variant_id: item.variant.id, turn_id: item.hint.turn_id, check_id: item.hint.check_id, decision,
+          reason: "Demo reviewer (fictional), not a real review.", evidence: "", reviewed_at: new Date(Date.now() - Math.round(rand() * 86400000)).toISOString(),
+          reviewer_role: role, reviewer: "Demo reviewer " + (i + 1), reviewer_id: id, demo: true, ratings }]);
+      }
+      writeJSON("tt-reviews:" + id, entries);
+    });
+  }
+  function removeDemoReviews() { for (const [id] of DEMO_REVIEWERS) { try { localStorage.removeItem("tt-reviews:" + id); } catch (error) { /* storage off */ } } }
+  const demoButton = document.getElementById("demo-reviews");
+  if (demoButton) {
+    const paintDemo = () => { demoButton.textContent = hasDemoReviews() ? "Remove demo reviews" : "Load demo reviews (fictional)"; };
+    demoButton.addEventListener("click", () => {
+      if (hasDemoReviews()) removeDemoReviews(); else loadDemoReviews();
+      location.reload(); // every view re-reads the reviews
+    });
+    paintDemo();
+  }
   document.getElementById("review-this-case").addEventListener("click", event => {
     event.preventDefault();
     const first = buildQueue().find(i => i.scenario.id === select.value && !decided(i.key)) || buildQueue().find(i => i.scenario.id === select.value);

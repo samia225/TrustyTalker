@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="styles.css">
   <!-- Load order matters: data, engine, checks, answer key, UI modules, then app.js. -->
   <script src="data.js" defer></script>
-  <!-- <script src="cases_extra.js" defer></script> -->
+  <script src="cases_extra.js" defer></script>  <!-- Person 2: longer AI-drafted fictional cases (CASE-AI-01 to 07) -->
   <script src="engine/similarity.js" defer></script>
   <script src="engine/anonymize.js" defer></script>
   <script src="engine/state_tracker.js" defer></script>
@@ -20,6 +20,7 @@
   <!-- <script src="engine/validate.js" defer></script> -->
   <!-- Answer key for the agreement panel (read only, owned by Person 4). -->
   <script src="tests/expected.js" defer></script>
+  <script src="tests/expected_extra.js" defer></script>  <!-- draft labels for cases_extra.js -->
   <!-- <script src="benchmark.js" defer></script> -->  <!-- optional: used instead of the built-in score once it exists -->
   <script src="judge_results.js" defer></script>  <!-- made by judge/run_judge.js -->
   <script src="ui/timeline.js" defer></script>
@@ -342,6 +343,7 @@
             <button id="export-all" type="button">Download results</button>
           </span>
           <button id="export-regressions" class="secondary" type="button">Download regression tests</button>
+          <button id="demo-reviews" class="secondary" type="button" title="Six fictional reviewers answer and rate some findings. Marked as demo in every export; one click removes them.">Load demo reviews (fictional)</button>
           <input id="import-file" type="file" accept="application/json,.json" multiple hidden>
         </div>
       </section>
