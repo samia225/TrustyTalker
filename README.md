@@ -2,7 +2,34 @@
 
 Internal tool for MCRC Health that flags JARA replies in fictional conversations that ignore a person's goals, readiness to change, or earlier preferences. Built at natHacks 2026; all rights reserved by MCRC Health. Fictional data only.
 
-The `base-code` tag is the MCRC starter kit as provided. See `START_HERE.txt` to run it.
+The `base-code` tag is the MCRC starter kit as provided. Everything after it was written during the natHacks 2026 weekend (Nov 6, 7 PM to Nov 9, 11 AM).
+
+## How to run
+
+1. Download or clone this repository.
+2. Double-click `index.html`. It opens in any modern browser. No install, account, server or internet connection is needed.
+3. Log in, sign up, or **Continue as a guest**, then choose your reviewer role on Home.
+
+To run the checks' tests (optional, needs Node.js): see [Tests](#tests).
+
+## Supporting materials
+
+- **Written summary:** [docs/project_summary.md](docs/project_summary.md) (250 words max) and [docs/about_the_project.md](docs/about_the_project.md) (600 words max).
+- **MCRC handover:** [docs/submission.md](docs/submission.md) answers SUBMISSION.txt.
+- **Dependencies and services:** [docs/dependencies_and_services.md](docs/dependencies_and_services.md).
+- **Limitations of the checks:** [docs/p1_checks_limitations.md](docs/p1_checks_limitations.md) and [docs/p2_checks_limitations.md](docs/p2_checks_limitations.md).
+- **Example exported findings:** [docs/example_export_CASE-01.json](docs/example_export_CASE-01.json).
+- **Scoring report:** [scoring/score_report.md](scoring/score_report.md).
+- **Visual guide:** inside the app (Home, then "See the step-by-step guide"), with screenshots in [guide/](guide/).
+- **Slides:** _[add link]_
+- **Demo video:** _[add link]_
+
+## Credits
+
+- **Team TrustyTalker (natHacks 2026, Problem Provider Division):** Samia Rahman (team lead), Fatima Khalid, Ghala Abdulfattah, Mohammad Hossein Naiji.
+- **Problem provider:** MCRC Health. Tyler (MCRC) reviewed the labels and severity rules and supplied scenarios CASE-19 to CASE-21. The starter kit (`base-code` tag) and `reference/support_choices.json` are MCRC's.
+- **Research we drew on:** Hawk et al. (2025) for stigmatizing terms; WHO digital health evaluation domains for the reviewer rating items; the SIM-VAIL paper (Nature Medicine, 2026) for simulated users and judge validation.
+- **Rights:** all rights reserved by MCRC Health.
 
 ## Repository layout
 
