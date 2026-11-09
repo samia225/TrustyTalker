@@ -1100,3 +1100,16 @@ body.tour-on .mascot-target { position: relative; z-index: 1001; box-shadow: 0 0
   .rv-grid:not(.rv-grid-even) > .rv-panel { position: static; }
   .rv-grid:not(.rv-grid-even) > .rv-convo .rv-turns { max-height: none; overflow: visible; }
 }
+
+/* Reviewer suggestions: a better reply or resource written by a person (never AI). Green
+   "person" styling so it is never confused with the purple AI JUDGE box. */
+.rs-tag { display: grid; gap: 4px; margin-top: 10px; padding: 8px 12px; border: 1px solid var(--sage-line); border-left: 5px solid var(--sage-ink); border-radius: var(--radius-md); background: var(--sage-wash); color: var(--ink); font-size: .86rem; }
+.rs-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.rs-badge { display: inline-block; padding: 1px 9px; border-radius: 999px; background: var(--sage-ink); color: #fff; font-size: .72rem; font-weight: 800; letter-spacing: .06em; }
+.rs-badge::before { content: "\1F464  "; }
+.rs-who { color: var(--sage-ink); font-size: .75rem; font-weight: 700; }
+.rs-row { margin: 0; line-height: 1.45; }
+.rv-suggest { display: grid; gap: 6px; margin-top: 12px; }
+.rv-suggest label { font-weight: 700; }
+.rv-suggest-others:empty { display: none; }
+:root[data-theme="dark"] .rs-badge { color: #1c261b; }
