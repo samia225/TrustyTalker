@@ -908,6 +908,86 @@
     if (value === "na") return "Unable to rate / not applicable";
     return RATING_SCALE[Number(value) - 1] || "Not rated";
   }
+  // Average of OTHER reviewers' slider ratings for one reply, filtered by reviewer type.
+  function othersAverages(key, role) {
+    const me = reviewerIdentity(reviews.get(key) || {}, userKey("tt-reviews").slice("tt-reviews:".length));
+    const people = (decisionIndex().get(key) || []).filter(r => r.who !== me && r.ratings && (!role || r.reviewer_role === role));
+    return {
+      people: people.length,
+      items: RATING_ITEMS.map(([id, domain]) => {
+        const values = people.map(r => r.ratings[id]).filter(v => v !== undefined);
+        const scores = values.filter(v => v !== "na").map(Number).filter(n => n >= 1 && n <= 5);
+        const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+        return { id, domain, avg, rated: scores.length, na: values.length - scores.length };
+      })
+    };
+  }
+  function openOthersScores(key) {
+    let dlg = document.getElementById("others-dialog");
+    if (!dlg) {
+      dlg = element("dialog", undefined, "add-case-dialog others-dialog");
+      dlg.id = "others-dialog";
+      dlg.setAttribute("aria-labelledby", "others-title");
+      document.body.append(dlg);
+    }
+    const title = element("h2", "How others scored this reply");
+    title.id = "others-title";
+    const pickWrap = element("div", undefined, "field");
+    const pickLabel = element("label", "Show the average from");
+    pickLabel.htmlFor = "others-role";
+    const pick = element("select");
+    pick.id = "others-role";
+    for (const [value, text] of [["", "Everyone"], ["clinician", "Clinicians"], ["peer", "Peer support"], ["researcher", "Researchers"], ["developer", "JARA developers"]]) {
+      const o = element("option", text); o.value = value; pick.append(o);
+    }
+    try { pick.value = localStorage.getItem("tt-others-role") || ""; } catch (error) { /* storage off */ }
+    pickWrap.append(pickLabel, pick);
+    const body = element("div", undefined, "others-body");
+    body.setAttribute("aria-live", "polite");
+    const draw = () => {
+      try { localStorage.setItem("tt-others-role", pick.value); } catch (error) { /* storage off */ }
+      const result = othersAverages(key, pick.value);
+      const who = pick.selectedOptions[0].textContent;
+      body.replaceChildren();
+      if (!result.people) {
+        body.append(element("p", pick.value ? "No ratings from " + who + " yet for this reply." : "No other reviewers have rated this reply yet.", "muted"));
+        return;
+      }
+      body.append(element("p", "Average of " + result.people + " other reviewer" + (result.people === 1 ? "" : "s") + (pick.value ? " (" + who + ")" : "") + ". 1 = strongly disagree, 5 = strongly agree.", "muted small"));
+      const table = element("table", undefined, "grid-table others-table");
+      const head = element("tr");
+      for (const h of ["Item", "Average", ""]) { const th = element("th", h); th.scope = "col"; head.append(th); }
+      table.append(element("thead"), element("tbody"));
+      table.tHead.append(head);
+      for (const item of result.items) {
+        const tr = element("tr");
+        const avgCell = element("td");
+        if (item.avg === null) avgCell.append(element("span", item.na ? "Not applicable" : "Not rated", "muted"));
+        else {
+          avgCell.append(element("strong", item.avg.toFixed(1)), document.createTextNode(" " + RATING_SHORT[Math.round(item.avg) - 1]));
+          const bar = element("span", undefined, "others-bar");
+          const fill = element("span", undefined, "others-bar-fill others-w" + Math.round(item.avg * 2));
+          bar.append(fill);
+          avgCell.append(bar);
+        }
+        const n = element("td", item.rated + " rated" + (item.na ? ", " + item.na + " n/a" : ""), "muted small");
+        tr.append(element("td", item.domain), avgCell, n);
+        table.tBodies[0].append(tr);
+      }
+      body.append(table);
+    };
+    pick.addEventListener("change", draw);
+    const close = element("button", "Close", "secondary");
+    close.type = "button";
+    close.addEventListener("click", () => { if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); });
+    const actions = element("div", undefined, "dialog-actions");
+    actions.append(close);
+    dlg.replaceChildren(title, pickWrap, body,
+      element("p", "Adapted items (WHO digital health domains), not a validated scale. Names are never shown.", "muted small"), actions);
+    draw();
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    pick.focus();
+  }
   function ratingsExport(saved) {
     if (!saved || !Object.keys(saved).length) return null;
     const out = { scale_note: "Adapted items (WHO digital health domains), not a validated scale. 1 = strongly disagree ... 5 = strongly agree; na = unable to rate / not applicable." };
@@ -916,9 +996,24 @@
   }
   // One slider per item. It stays "Not rated" until it is moved; the tick box records
   // "Unable to rate / not applicable". Changes are saved straight away.
-  function ratingBlock(ratings, onChange) {
+  function ratingBlock(ratings, onChange, key) {
     const box = element("details", undefined, "rv-ratings");
     box.open = true;
+    if (key) {
+      const others = element("button", "\uD83D\uDCCA Others\u2019 scores", "secondary rv-others-open");
+      others.type = "button";
+      const why = element("span", "", "muted small rv-others-why");
+      box.refreshOthers = () => {
+        const answered = !!(reviews.get(key) || {}).decision;
+        others.disabled = !answered;
+        why.textContent = answered ? "" : "Answer Yes, No or Not sure first, so others\u2019 scores do not influence yours.";
+      };
+      others.addEventListener("click", () => openOthersScores(key));
+      const tools = element("div", undefined, "rv-ratings-tools");
+      tools.append(others, why);
+      box.append(tools);
+      box.refreshOthers();
+    }
     const done = () => Object.keys(ratings).length;
     const summary = element("summary");
     const count = element("span", "", "rv-ratings-count");
@@ -977,7 +1072,7 @@
   function decisionIndex() {
     const byKey = new Map();
     const take = (key, record, owner) => {
-      if (!record || !record.decision) return;
+      if (!record || (!record.decision && !(record.ratings && Object.keys(record.ratings).length))) return;
       if (!byKey.has(key)) byKey.set(key, new Map());
       const who = reviewerIdentity(record, owner);
       const old = byKey.get(key).get(who);
@@ -1011,7 +1106,7 @@
     writeJSON("tt-reviews:imported", all);
   }
   function consensusFor(key, index) {
-    const list = (index || decisionIndex()).get(key) || [];
+    const list = ((index || decisionIndex()).get(key) || []).filter(r => r.decision);
     const n = list.length;
     const yes = list.filter(r => r.decision === "confirmed").length;
     const no = list.filter(r => r.decision === "rejected").length;
@@ -2474,6 +2569,7 @@
       });
       paint();
       refreshTwoReview();
+      if (ratingBox.refreshOthers) ratingBox.refreshOthers();
     }
     const CHOICES = [
       ["confirmed", "Yes", "it is a problem (confirm)"],
@@ -2496,7 +2592,8 @@
     panel.append(question, reasonWrap);
     // Tyler's reviewer items (WHO digital health domains), rated on a slider.
     const ratings = Object.assign({}, saved.ratings || {});
-    panel.append(ratingBlock(ratings, () => save()));
+    const ratingBox = ratingBlock(ratings, () => save(), key);
+    panel.append(ratingBox);
 
     // Change your mind: clear the answer and the reply goes back to "not decided".
     const clear = element("button", "Clear my answer", "link-button rv-clear");

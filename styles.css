@@ -988,3 +988,21 @@ textarea[aria-invalid="true"] { border-color: var(--flag); box-shadow: 0 0 0 3px
 .rating-value { display: block; margin-top: 2px; font-size: .8rem; font-weight: 700; color: var(--blue-text); }
 .rating-row.is-unrated .rating-value { color: var(--muted); font-weight: 500; }
 .rating-na { display: flex; gap: 6px; align-items: center; margin-top: 4px; font-size: .78rem; color: var(--muted); }
+
+/* Others' scores pop-up */
+.rv-ratings-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 2px; }
+.rv-others-open { min-height: 34px; padding: 4px 12px; font-size: .82rem; }
+.rv-others-why:empty { display: none; }
+.others-dialog { width: min(560px, calc(100vw - 32px)); }
+.others-dialog h2 { margin-top: 0; }
+.others-bar { display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: var(--line-soft); overflow: hidden; }
+.others-bar-fill { display: block; height: 100%; background: var(--blue); }
+.others-w2 { width: 20%; }
+.others-w3 { width: 30%; }
+.others-w4 { width: 40%; }
+.others-w5 { width: 50%; }
+.others-w6 { width: 60%; }
+.others-w7 { width: 70%; }
+.others-w8 { width: 80%; }
+.others-w9 { width: 90%; }
+.others-w10 { width: 100%; }
