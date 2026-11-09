@@ -57,6 +57,30 @@
   } catch (error) { /* storage off: decisions last until the page closes */ }
   function keepReviews() { try { localStorage.setItem(userKey("tt-reviews"), JSON.stringify([...reviews])); } catch (error) { /* storage off */ } }
   { const plainSet = reviews.set.bind(reviews); reviews.set = (k, v) => { plainSet(k, v); keepReviews(); return reviews; }; }
+  // ---- Cases added in this page ------------------------------------------
+  // Cases a reviewer adds, and JARA thumbs-down cases, are kept in this browser so they
+  // survive a refresh. Each one records when it was added (added_at) and by which role.
+  // They are never written to data.js. Fictional data only.
+  const ADDED_ORIGINS = ["reviewer_added", "jara_feedback"];
+  function keepAddedCases() {
+    writeJSON("tt-added-cases", data && Array.isArray(data.cases) ? data.cases.filter(c => ADDED_ORIGINS.includes(c.origin)) : []);
+  }
+  if (data && Array.isArray(data.cases)) {
+    const saved = readJSON("tt-added-cases", []);
+    for (const c of Array.isArray(saved) ? saved : []) {
+      const wellFormed = c && typeof c.id === "string" && ADDED_ORIGINS.includes(c.origin) && Array.isArray(c.variants) &&
+        c.variants.every(v => v && typeof v.id === "string" && Array.isArray(v.turns) && v.turns.every(t => t && typeof t.id === "string" && typeof t.text === "string"));
+      if (wellFormed && !data.cases.some(x => x.id === c.id)) data.cases.push(c);
+    }
+  }
+  function formatWhen(iso) {
+    const d = new Date(iso);
+    if (!iso || isNaN(d)) return "";
+    try { return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }); } catch (error) { return d.toISOString().slice(0, 16).replace("T", " "); }
+  }
+  function addedStamp() {
+    return { added_at: new Date().toISOString(), added_by_role: reviewerRole || null };
+  }
   // Prototype UI state: finding cards and turn comments by key, plus the active finding.
   let findingCards = [];          // [{ key, row, hint, variantId }]
   let turnComments = new Map();   // key -> inline comment button under the turn
@@ -740,7 +764,9 @@
         feedback: [{ turn_id: target.id, rating: "thumbs_down", comment: anon.scrub(String(fb.comment || "").slice(0, 500)) }] }]
     };
     scenario.anonymization = { applied: true, details_replaced: anon.replacedCount(), by_type: anon.summary() };
+    Object.assign(scenario, addedStamp(), { received_at: file.created_at || null });
     data.cases.push(scenario);
+    keepAddedCases();
     const option = element("option", scenario.id + " / " + scenario.title);
     option.value = scenario.id;
     select.append(option);
@@ -1474,6 +1500,24 @@
         caseCell.append(open);
         if (vIndex === 0 && scenario.origin === "reviewer_added") caseCell.append(element("span", "Added", "case-tag"));
         if (scenario.title) caseCell.append(element("span", scenario.title, "case-title")); // so a new case is easy to recognise
+        if (scenario.added_at) caseCell.append(element("span", (scenario.origin === "jara_feedback" ? "Received " : "Added ") + formatWhen(scenario.added_at), "case-when"));
+        if (vIndex === 0 && ADDED_ORIGINS.includes(scenario.origin)) {
+          const remove = element("button", "Remove", "link-button case-remove");
+          remove.type = "button";
+          remove.setAttribute("aria-label", "Remove " + scenario.id + ", " + scenario.title);
+          remove.addEventListener("click", event => {
+            event.stopPropagation();
+            if (!window.confirm("Remove " + scenario.id + " (" + scenario.title + ") from this browser?")) return;
+            const at = data.cases.indexOf(scenario);
+            if (at >= 0) data.cases.splice(at, 1);
+            const option = [...select.options].find(o => o.value === scenario.id);
+            if (option) option.remove();
+            keepAddedCases();
+            buildCaseList();
+            renderFlowViews();
+          });
+          caseCell.append(remove);
+        }
         const foundCell = element("td");
         if (critical) foundCell.append(element("span", "Safety", "badge badge-severity severity-critical"), document.createTextNode(" "));
         foundCell.append(document.createTextNode(found));
@@ -2098,7 +2142,8 @@
     const head = element("div", undefined, "rv-convo-head");
     head.append(element("h2", heading || "The conversation"),
       element("p", scenario.id + " · " + scenario.title + " · " + (variant.label || variant.id) +
-        " · " + variant.turns.length + " message" + (variant.turns.length === 1 ? "" : "s") + ", shown in full", "muted"));
+        " · " + variant.turns.length + " message" + (variant.turns.length === 1 ? "" : "s") + ", shown in full" +
+        (scenario.added_at ? " · " + (scenario.origin === "jara_feedback" ? "Received " : "Added ") + formatWhen(scenario.added_at) : ""), "muted"));
     box.append(head);
     box.append(turnList(variant, hint));
     // What the person said (goal, readiness...) sits under the conversation so
@@ -2497,7 +2542,7 @@
     });
     return {
       schema_version: "jara-junior-findings-1", dataset_version: data.version,
-      generated_at: new Date().toISOString(), case_id: scenario.id, provenance: data.provenance,
+      generated_at: new Date().toISOString(), case_id: scenario.id, case_title: scenario.title, case_added_at: scenario.added_at || null, provenance: data.provenance,
       implemented_checks: api.checks.filter(c => c.implemented).map(c => c.id),
       unfinished_checks: api.checks.filter(c => !c.implemented).map(c => c.id),
       review_status: counts.not_reviewed ? "partly_reviewed" : "reviewed", clinical_validation: "not_established",
@@ -3112,7 +3157,9 @@
         readiness: document.getElementById("add-readiness").value,
         sources: [], variants, origin: "reviewer_added"
       };
+      Object.assign(scenario, addedStamp());
       data.cases.push(scenario);
+      keepAddedCases();
       const option = element("option", scenario.id + " / " + scenario.title);
       option.value = scenario.id;
       select.append(option);
