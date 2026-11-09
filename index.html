@@ -71,6 +71,17 @@
     <div id="admin-banner" class="admin-banner" role="status" hidden></div>
     <!-- WELCOME: log in, sign up or continue as a guest -->
     <div class="view" data-view="welcome" id="view-welcome" hidden>
+     <div class="welcome-layout">
+      <section class="welcome-intro" aria-labelledby="intro-heading">
+        <h2 id="intro-heading">What is TrustyTalker?</h2>
+        <p class="welcome-line">A review tool for MCRC Health's JARA chatbot. It reads fictional conversations, flags JARA replies that may not fit what the person asked for, and lets a person decide whether each one is a real problem.</p>
+        <ul class="welcome-points">
+          <li><strong>Follows the person.</strong> Tracks their goal, readiness and preferences through the conversation.</li>
+          <li><strong>Flags with evidence.</strong> Every flag quotes JARA's exact words and says how serious it is.</li>
+          <li><strong>You decide.</strong> Flags are suggestions. A reviewer confirms or rejects each one.</li>
+        </ul>
+        <p class="welcome-small">Fictional data only. Not a clinical tool.</p>
+      </section>
       <section class="auth-card" aria-labelledby="auth-heading">
         <h2 id="auth-heading">How do you want to start?</h2>
         <div class="auth-tabs" role="tablist" aria-label="Sign in options">
@@ -213,6 +224,7 @@
         </section>
         <p class="auth-note">Demo sign-in: accounts are saved only in this browser, on this computer, and the password is stored as a protected hash. Do not use a password you use anywhere else. Real accounts would come from MCRC.</p>
       </section>
+     </div>
     </div>
 
     <!-- VISUAL GUIDE: step by step with pictures -->
