@@ -211,6 +211,27 @@ testAsync("Watcher: judges a downloaded file once, skips conversations already j
   });
 });
 
+testAsync("--live --missing judges only conversations with no result yet and keeps every earlier result", async () => {
+  const before = fs.readFileSync(OUT, "utf8");
+  const win = {}; new Function("window", before)(win);
+  const prev = win.JUDGE_RESULTS;
+  const have = new Set(prev.results.map(r => r.variant_id));
+  const { prompts } = quietly(() => judge.run([]));
+  const missing = prompts.filter(p => !have.has(p.variant_id)).length;
+  let calls = 0;
+  const fakeFetch = async () => { calls++; return { ok: true, status: 200, json: async () => ({ model: "fake-model-1", usage: { total_tokens: 5 }, choices: [{ message: { content: "{\"findings\":[],\"unsure\":[]}" } }] }) }; };
+  try {
+    const { results } = await quietlyAsync(() => judge.runLive(["--live", "--missing"], { env: { OPENAI_API_KEY: "k" }, fetchImpl: fakeFetch }));
+    assert.equal(calls, missing, "only conversations without a result are sent");
+    assert.equal(results.results.length, prev.results.length + missing);
+    assert.deepEqual(results.results.slice(0, prev.results.length), prev.results, "earlier results are unchanged");
+    assert.equal(results.status, prev.status);
+    const run = results.extra_runs.slice(-1)[0];
+    assert.equal(run.variants.length, missing);
+    fs.rmSync(path.join(__dirname, run.source_file), { force: true });
+  } finally { fs.writeFileSync(OUT, before); }
+});
+
 async function quietlyAsync(fn) { const log = console.log; console.log = () => {}; try { return await fn(); } finally { console.log = log; } }
 
 test("Dry run builds one prompt per conversation and writes nothing", () => {
