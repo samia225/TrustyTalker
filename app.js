@@ -2168,8 +2168,8 @@
     ["developer", "JARA developer", "Engineer who builds JARA. Gets repeats, sources, certainty and what JARA asks for."]
   ];
   const ROLE_CHECKS = {
-    peer: ["goal_alignment", "premature_advice", "respectful_language", "information_gathering", "repetition", "over_refusal", "user_feedback"],
-    developer: ["repetition", "source_support", "overconfidence", "information_gathering", "premature_advice", "user_feedback"]
+    peer: ["goal_alignment", "drift", "declined_reask", "premature_advice", "respectful_language", "information_gathering", "repetition", "near_repetition", "over_refusal", "user_feedback"],
+    developer: ["repetition", "near_repetition", "drift", "saved_state", "source_support", "overconfidence", "information_gathering", "premature_advice", "user_feedback"]
   };
   let reviewerRole = "";
   function roleLabel(id) { return (ROLES.find(r => r[0] === id) || [null, ""])[1]; }
@@ -3640,6 +3640,43 @@
     });
   }
   function removeDemoReviews() { for (const [id] of DEMO_REVIEWERS) { try { localStorage.removeItem("tt-reviews:" + id); } catch (error) { /* storage off */ } } }
+  // Fixed FICTIONAL ratings on six demo findings, so "Others' scores" has numbers on known
+  // replies without any clicks. Loaded once per browser, marked like the demo reviews above
+  // (demo: true, "Demo reviewer (fictional)"), and "Remove demo reviews" clears them for good.
+  // Base scores per item, in RATING_ITEMS order: understanding, safety, usefulness,
+  // resource navigation, information quality, readability, acceptability ("na" = not applicable).
+  const DEMO_SEED = [
+    ["CASE-10-B-A2", "goal_alignment", [1, 3, 2, "na", 3, 4, 2]],      // demo story: quit plan for someone not ready
+    ["CASE-01-B-A1", "goal_alignment", [1, 2, 1, "na", 3, 4, 1]],      // "You need to quit" (critical: clinicians only)
+    ["CASE-12-B-A2", "crisis_response", [1, 1, 1, 1, 3, 4, 3]],        // missed risk signs (critical: clinicians only)
+    ["CASE-02-B-A1", "drift", [1, 4, 2, "na", 3, 4, 3]],               // follows the old goal
+    ["CASE-05-B-A1", "source_support", [3, 3, 2, 2, 1, 4, 4]],         // "free" when the record says unknown
+    ["CASE-P2-07-B-A1", "respectful_language", [3, 3, 3, "na", 3, 4, 1]] // "alcoholics"
+  ];
+  function seedDemoRatings() {
+    const queue = buildQueue();
+    const nudge = [0, 1, -1, 0, 1, 0]; // small, fixed differences between reviewers
+    DEMO_REVIEWERS.forEach(([id, role], i) => {
+      const entries = new Map((readJSON("tt-reviews:" + id, []) || []).filter(e => Array.isArray(e) && e.length === 2));
+      DEMO_SEED.forEach(([turnId, checkId, base], j) => {
+        const item = queue.find(q => q.hint.turn_id === turnId && q.hint.check_id === checkId);
+        if (!item || !canReview(item.hint, role)) return;
+        const ratings = {};
+        RATING_ITEMS.forEach(([rid], k) => {
+          ratings[rid] = base[k] === "na" ? "na" : Math.max(1, Math.min(5, base[k] + nudge[(i + j + k) % nudge.length]));
+        });
+        entries.set(item.key, { variant_id: item.variant.id, turn_id: turnId, check_id: checkId,
+          decision: (i + j) % 7 === 3 ? "unsure" : "confirmed",
+          reason: "Demo reviewer (fictional), not a real review.", evidence: "",
+          reviewed_at: "2026-11-08T" + String(10 + i).padStart(2, "0") + ":00:00.000Z",
+          reviewer_role: role, reviewer: "Demo reviewer " + (i + 1), reviewer_id: id, demo: true, ratings });
+      });
+      if (entries.size) writeJSON("tt-reviews:" + id, [...entries]);
+    });
+  }
+  try {
+    if (!localStorage.getItem("tt-demo-seeded")) { seedDemoRatings(); localStorage.setItem("tt-demo-seeded", "1"); }
+  } catch (error) { /* storage off: no demo ratings */ }
   const demoButton = document.getElementById("demo-reviews");
   if (demoButton) {
     const paintDemo = () => { demoButton.textContent = hasDemoReviews() ? "Remove demo reviews" : "Load demo reviews (fictional)"; };

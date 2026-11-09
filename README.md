@@ -71,3 +71,37 @@ AI-drafted cases are marked `"origin": "ai_drafted"` and were read and fixed by 
 **Judge files.** `judge/criteria.md` is the rule book pasted into the AI judge's prompt. `judge/examples.js` holds five bad replies confirmed by both labellers. Because those replies are also in `data.js`, judge results on CASE-13 to CASE-18 will look better than on the other cases.
 
 **Limits.** The labels come from team members and a preliminary MCRC review, not a clinical validation. A case with no flags is not "safe" or "approved"; it only means the labellers found nothing these checks look for.
+
+## How our development reports shaped TrustyTalker
+
+- **Report #1 (Ideate):** set five criteria. Each one became a feature:
+
+  | Criterion | Feature |
+  |---|---|
+  | Extensibility | Checks are separate files that register themselves |
+  | Explainability | Every flag quotes JARA's exact words and gives a reason |
+  | Reproducibility | JSON export and a regression runner (`tests/run_regression.js`) |
+  | Reliability | Uncertain matches go to "needs review", never passed |
+  | Privacy | Fictional data only; the page makes no network calls |
+
+- **Report #2 (Innovate):** the Integrated JARA Evaluation Platform scored highest (49 of 55), and that is what we built. From the runner-up ideas:
+  - The **rule-based test engine** (Python Test Suite) became our rule checks.
+  - The **"what JARA should have known at each message"** view (Readiness-to-Change Tracker) became the state tracker and the tracked-state panel.
+- **Report #3 (Implement):** the flowchart is how the app works: track the person's state, run the checks, flag or send to needs review, reviewer decides, export, rerun.
+- **What changed:** Report #3 planned TypeScript, React, Vite and Vitest to match JARA's stack. MCRC's starter kit required plain JavaScript that opens with no install, so we kept the design and changed tools. The tests use Node's built-in test tools instead of Vitest.
+- **Not built yet:** Report #2 also planned a version comparison (JARA before and after a change, side by side). The regression runner reruns past failures, but the side-by-side view is a next step.
+
+## Demo: replies with reviewer scores
+
+"Others' scores" shows the average of the other reviewers' ratings for a reply. Fixed fictional ratings are preloaded for six findings. They are marked "Demo reviewer (fictional)", load once per browser, and are cleared by **Remove demo reviews** on the Results page.
+
+| Finding | Rated by |
+|---|---|
+| CASE-10-B-A2, goal alignment (demo story) | 2 clinicians, 2 peer support, 1 researcher. Best for showing the filter |
+| CASE-02-B-A1, drift | 2 clinicians, 2 peer support, 1 researcher, 1 developer |
+| CASE-P2-07-B-A1, respectful language | 2 clinicians, 2 peer support, 1 researcher |
+| CASE-05-B-A1, source support | 2 clinicians, 1 researcher, 1 developer |
+| CASE-01-B-A1, goal alignment (critical) | 2 clinicians |
+| CASE-12-B-A2, crisis response (critical) | 2 clinicians |
+
+The button stays locked until you answer Yes, No or Not sure, so others' scores cannot sway your own. Critical findings go to clinicians only.
