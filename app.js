@@ -951,11 +951,25 @@
     };
   }
   function consensusLabel(c) {
-    if (c.status === "not_reviewed") return "0 of " + c.needed + " reviews";
-    if (c.status === "needs_second_reviewer") return c.reviewers + " of " + c.needed + " reviews: needs a second reviewer";
-    if (c.status === "agreed_problem") return c.reviewers + " reviewers agree: a problem";
-    if (c.status === "agreed_fine") return c.reviewers + " reviewers agree: fine";
-    return "Reviewers disagree: needs a final decision";
+    const people = "Reviewed by " + c.reviewers + (c.reviewers === 1 ? " person" : " people");
+    if (c.status === "agreed_problem") return people + ": all say it is a problem";
+    if (c.status === "agreed_fine") return people + ": all say it is fine";
+    if (c.status === "reviewers_disagree") return people + ": they disagree";
+    return people;
+  }
+  function minimumText(c) {
+    return (c.reviewers >= c.needed ? "Minimum reviews met" : "Minimum reviews not met") + " (" + Math.min(c.reviewers, c.needed) + " of " + c.needed + ")";
+  }
+  // ✅ once at least two people reviewed, ⏳ before that. Hover or focus shows the meaning.
+  function reviewBadge(c) {
+    const met = c.reviewers >= c.needed;
+    const badge = element("span", met ? "✅" : "⏳", "review-badge " + (met ? "is-met" : "is-not-met"));
+    badge.title = minimumText(c);
+    badge.dataset.tip = minimumText(c);
+    badge.tabIndex = 0;
+    badge.setAttribute("role", "img");
+    badge.setAttribute("aria-label", minimumText(c));
+    return badge;
   }
   function consensusExport(c) { return { status: c.status, reviewers: c.reviewers, needed: c.needed, final: c.final, decisions: c.decisions }; }
   const DECISION_WORDS = { confirmed: "Yes, a problem", rejected: "No, fine", unsure: "Not sure" };
@@ -964,14 +978,16 @@
     const me = reviewerIdentity(reviews.get(key) || {}, userKey("tt-reviews").slice("tt-reviews:".length));
     const iDecided = c._list.some(r => r.who === me);
     const note = {
-      not_reviewed: "Two different reviewers must decide before this finding counts.",
-      needs_second_reviewer: iDecided ? "Your answer is saved. A second reviewer must also decide before this counts." : "One reviewer has decided. Your answer would be the second.",
+      not_reviewed: "Nobody has reviewed this yet. At least 2 people need to review it.",
+      needs_second_reviewer: iDecided ? "Your answer is saved. One more person needs to review it." : "One person has reviewed it. Your answer would be the second.",
       agreed_problem: "This finding now counts as a confirmed problem.",
       agreed_fine: "This finding now counts as fine.",
       reviewers_disagree: "The reviewers do not agree, or one is not sure. A clinician or the admin team makes the final call."
     }[c.status];
     box.className = "two-review two-review-" + c.status;
-    box.replaceChildren(element("strong", "Two-reviewer rule: " + consensusLabel(c)), element("span", note, "two-review-note"));
+    const head = element("div", undefined, "two-review-head");
+    head.append(element("strong", "👥 Reviewed by " + c.reviewers + (c.reviewers === 1 ? " person" : " people")), reviewBadge(c));
+    box.replaceChildren(head, element("span", note, "two-review-note"));
     if (c._list.length) {
       const ul = element("ul", undefined, "two-review-list");
       let n = 0;
@@ -1127,7 +1143,25 @@
   function judgeCovered(variantId) {
     const raw = judgeData();
     const list = Array.isArray(raw) ? raw : raw && Array.isArray(raw.results) ? raw.results : [];
-    return list.some(item => item && item.variant_id === variantId);
+    const item = list.find(r => r && r.variant_id === variantId);
+    if (!item) return false;
+    // A case added in this page only counts as judged when the AI saw this exact conversation.
+    const scenario = data.cases.find(c => c.variants.some(v => v.id === variantId));
+    if (scenario && ADDED_ORIGINS.includes(scenario.origin)) {
+      const variant = scenario.variants.find(v => v.id === variantId);
+      return !!(item.fingerprint && window.JARASimilarity && window.JARASimilarity.fingerprint(variant.turns) === item.fingerprint);
+    }
+    return true;
+  }
+  function isAddedVariant(variantId) {
+    const scenario = data.cases.find(c => c.variants.some(v => v.id === variantId));
+    return !!(scenario && ADDED_ORIGINS.includes(scenario.origin));
+  }
+  // Cases added in this page, in the shape judge/run_judge.js --cases reads.
+  function downloadAddedForJudge() {
+    const added = data.cases.filter(c => ADDED_ORIGINS.includes(c.origin));
+    downloadJSON({ schema_version: "trustytalker-added-cases-1", note: "Fictional cases added in TrustyTalker. Run: node judge/run_judge.js --live --cases <this file>", cases: added },
+      "trustytalker-added-cases.json");
   }
   function judgeUnsureFor(variantId, turnId) {
     const raw = judgeData();
@@ -1147,7 +1181,8 @@
     tag.append(head, element("strong", title, "ai-tag-title"));
     if (detail) {
       const why = element("span", undefined, "ai-tag-detail");
-      why.append(element("strong", "AI's reason: "), document.createTextNode(detail));
+      if (kind !== "none") why.append(element("strong", "AI's reason: "));
+      why.append(document.createTextNode(detail));
       tag.append(why);
     }
     return tag;
@@ -1161,7 +1196,11 @@
   function aiVerdict(variantId, turnId, ruleFlagged) {
     const raw = judgeData();
     if (!raw || (!Array.isArray(raw) && !Array.isArray(raw.results))) return null;
-    if (!judgeCovered(variantId)) return { kind: "none", title: "Not run on this conversation (it was added after the AI run).", detail: "" };
+    if (!judgeCovered(variantId)) {
+      if (isAddedVariant(variantId)) return { kind: "none", title: "Not run yet: you added this case after the last AI run.", added: true,
+        detail: "The AI cannot run inside this page (it works offline). Press Download for the AI judge, then in the project folder run: node judge/run_judge.js --live --cases ~/Downloads/trustytalker-added-cases.json and refresh this page." };
+      return { kind: "none", title: "Not run on this conversation (it was added after the AI run).", detail: "" };
+    }
     const judge = (judgeHintsFor(variantId) || []).filter(h => h.turn_id === turnId);
     const unsure = judgeUnsureFor(variantId, turnId);
     const reason = judge.map(h => h.reason).filter(Boolean).join(" ");
@@ -1171,9 +1210,17 @@
     if (unsure) return { kind: "check", title: "Unsure: the AI could not decide about this reply. A reviewer should check.", detail: unsure.note };
     return { kind: "ok", title: "The AI found no problem with this reply.", detail: "" };
   }
-  function aiVerdictTag(variantId, turnId, ruleFlagged) {
+  function aiVerdictTag(variantId, turnId, ruleFlagged, withAction) {
     const v = aiVerdict(variantId, turnId, ruleFlagged);
-    return v ? aiTag(v.kind, v.title, v.detail) : null;
+    if (!v) return null;
+    const tag = aiTag(v.kind, v.title, v.detail);
+    if (withAction && v.added) {
+      const get = element("button", "Download for the AI judge", "secondary ai-tag-action");
+      get.type = "button";
+      get.addEventListener("click", downloadAddedForJudge);
+      tag.append(get);
+    }
+    return tag;
   }
   function renderJudgeComparison(scenario, results) {
     document.querySelectorAll(".ai-tag").forEach(node => node.remove());
@@ -2233,7 +2280,7 @@
     why.append(element("summary", "Why the check flagged it"), element("p", hint.reason));
     panel.append(why);
     // Second opinion from the AI judge on this same reply (only when judge_results.js is loaded).
-    const ai = aiVerdictTag(item.variant.id, hint.turn_id, true);
+    const ai = aiVerdictTag(item.variant.id, hint.turn_id, true, true);
     if (ai) panel.append(ai);
     panel.append(twoReviewBox(key));
     if (hint.check_id === "source_support") {
@@ -2259,7 +2306,7 @@
     const choices = element("div", undefined, "rv-choices");
     const saved = reviews.get(key) || {};
     const reasonWrap = element("div", undefined, "rv-reason");
-    const reasonLabel = element("label", "Why? (required) One sentence is enough.");
+    const reasonLabel = element("label", "Your reason (required when you answer). One sentence is enough.");
     reasonLabel.htmlFor = "rv-reason-text";
     const reason = element("textarea");
     reason.id = "rv-reason-text";
@@ -2339,7 +2386,6 @@
       const current = (reviews.get(key) || {}).decision || null;
       for (const button of choices.querySelectorAll("button")) button.setAttribute("aria-pressed", String(button.dataset.decision === current));
       panel.dataset.decision = current || "";
-      reasonWrap.hidden = !current;
       clear.hidden = !current;
       next.textContent = current ? "Next →" : "Skip for now →";
       note.textContent = current ? "Saved: " + { confirmed: "Yes, a problem", rejected: "No, it is fine", unsure: "Not sure" }[current] + "." : "";
@@ -2497,7 +2543,7 @@
     if (!box) return;
     const table = element("table", undefined, "grid-table decisions-table");
     const head = element("tr");
-    for (const h of ["Case", "Problem", "Decision", "Why", "By", "Two reviewers", ""]) { const th = element("th", h); th.scope = "col"; head.append(th); }
+    for (const h of ["Case", "Problem", "Decision", "Why", "By", "Reviewed by", ""]) { const th = element("th", h); th.scope = "col"; head.append(th); }
     table.append(element("thead"), element("tbody"));
     table.tHead.append(head);
     const index = decisionIndex();
@@ -2520,7 +2566,7 @@
       const why = element("td", saved.reason || "-", "reason-cell");
       const c = consensusFor(item.key, index);
       const both = element("td");
-      both.append(element("span", consensusLabel(c), "consensus-pill consensus-" + c.status));
+      both.append(element("span", c.reviewers + (c.reviewers === 1 ? " person" : " people"), "consensus-pill consensus-" + c.status), document.createTextNode(" "), reviewBadge(c));
       tr.append(element("td", item.scenario.id), problem, decision, why, element("td", [saved.reviewer, roleLabel(saved.reviewer_role)].filter(Boolean).join(", ") || "-", "role-cell"), both, act);
       table.tBodies[0].append(tr);
     }
@@ -3148,6 +3194,36 @@
     if (dialog.close) dialog.close(); else dialog.removeAttribute("open");
     if (addOpener && addOpener.focus) addOpener.focus();
   }
+  // After a case is added: add another (go to All cases) or open the new case.
+  function askAddMore(scenario) {
+    let ask = document.getElementById("add-more-dialog");
+    if (!ask) {
+      ask = element("dialog", undefined, "add-case-dialog add-more-dialog");
+      ask.id = "add-more-dialog";
+      ask.setAttribute("aria-labelledby", "add-more-title");
+      document.body.append(ask);
+    }
+    const title = element("h2", "Case added");
+    title.id = "add-more-title";
+    const text = element("p", scenario.id + " · " + scenario.title + " was added " + formatWhen(scenario.added_at) + ". Do you want to add more cases?");
+    const actions = element("div", undefined, "dialog-actions");
+    const no = element("button", "No, open this case", "secondary");
+    no.type = "button";
+    const yes = element("button", "Yes, add more cases");
+    yes.type = "button";
+    const close = () => { if (ask.close) ask.close(); else ask.removeAttribute("open"); };
+    yes.addEventListener("click", () => {
+      close();
+      navigate("cases");
+      const link = document.querySelector('.case-open[data-case-id="' + scenario.id + '"]');
+      if (link) { link.scrollIntoView({ block: "center" }); link.focus({ preventScroll: true }); }
+    });
+    no.addEventListener("click", () => { close(); openCaseReview(scenario.id); });
+    actions.append(no, yes);
+    ask.replaceChildren(title, text, actions);
+    if (ask.showModal) ask.showModal(); else ask.setAttribute("open", "");
+    yes.focus();
+  }
   function saveAddCase() {
     const id = nextCustomId();
     const title = document.getElementById("add-title").value.trim() || "My case";
@@ -3174,9 +3250,7 @@
       applyCaseFilter();
       if (dialog.close) dialog.close(); else dialog.removeAttribute("open");
       ["add-title", "add-a", "add-b"].forEach(f => { document.getElementById(f).value = ""; });
-      openCaseReview(scenario.id);
-      const item = document.querySelector('.case-open[data-case-id="' + scenario.id + '"]');
-      if (item) item.focus({ preventScroll: true });
+      askAddMore(scenario);
     } catch (error) {
       addError.textContent = error.message;
     }

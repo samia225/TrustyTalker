@@ -19,6 +19,9 @@
  *       Real run: one model call per conversation (or only the first N with --limit),
  *       saves the raw outputs to judge/live_outputs_<time>.json, then validates and
  *       compares them like --from-file and writes judge_results.js with status "judge_run".
+ *   node judge/run_judge.js --live --cases ~/Downloads/trustytalker-added-cases.json
+ *       Judges only the cases added in the page (file from "Download for the AI judge")
+ *       and merges them into the existing judge_results.js; earlier results are kept.
  *   node judge/run_judge.js --placeholder
  *       Writes a judge_results.js that only records "not run" (status) and does
  *       NOT define window.JUDGE_RESULTS, so the page loads it without a missing-
@@ -279,7 +282,9 @@ async function runLive(args, { fetchImpl = globalThis.fetch, env = readEnv() } =
   const maxTotal = Number(env.JUDGE_MAX_TOTAL_TOKENS) || DEFAULT_MAX_TOTAL_TOKENS;
   const limit = Number(argValue(args, "--limit")) || Infinity;
 
-  const { prompts } = quietRun([]);
+  const casesFile = argValue(args, "--cases");
+  const extra = casesFile ? ["--cases", casesFile] : [];
+  const { prompts } = quietRun(extra);
   const outputs = {};
   let used = 0, done = 0, stoppedEarly = null, actualModel = model;
   for (const p of prompts.slice(0, limit)) {
@@ -301,7 +306,7 @@ async function runLive(args, { fetchImpl = globalThis.fetch, env = readEnv() } =
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const rawFile = path.join(__dirname, "live_outputs_" + stamp + ".json");
   fs.writeFileSync(rawFile, JSON.stringify(outputs, null, 2) + "\n");
-  return run(["--from-file", rawFile], {
+  return run(["--from-file", rawFile].concat(extra), {
     status: "judge_run",
     note: "Real model run on fictional conversations (" + actualModel + "). Unreviewed suggestions: a reviewer decides." +
       (stoppedEarly ? " Stopped early: " + stoppedEarly + "." : ""),
@@ -341,6 +346,36 @@ function writePlaceholder() {
   return PLACEHOLDER_TEXT;
 }
 
+/* ------------------------------------------------------------------ *
+ * Cases added in the page (Browse cases > Add your own case, or a JARA thumbs down)
+ * The page downloads them as a file; --cases judges only those and MERGES the results
+ * into the existing judge_results.js, so earlier results are kept unchanged.
+ * ------------------------------------------------------------------ */
+const ADDED_ORIGINS = ["reviewer_added", "jara_feedback"];
+function readAddedCases(file, data) {
+  const parsed = JSON.parse(fs.readFileSync(path.resolve(file), "utf8"));
+  const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed && parsed.cases) ? parsed.cases : [];
+  const known = new Set(data.cases.map(c => c.id));
+  const cases = [], skipped = [];
+  for (const c of list) {
+    const ok = c && typeof c.id === "string" && ADDED_ORIGINS.includes(c.origin) && Array.isArray(c.variants) && c.variants.length &&
+      c.variants.every(v => v && typeof v.id === "string" && Array.isArray(v.turns) && v.turns.length &&
+        v.turns.every(t => t && typeof t.id === "string" && (t.role === "user" || t.role === "assistant") && typeof t.text === "string"));
+    if (!ok) { skipped.push((c && c.id) || "?"); continue; }
+    if (known.has(c.id)) { skipped.push(c.id + " (same ID as a built-in case)"); continue; }
+    cases.push(Object.assign({ sources: [], goal: "undecided", readiness: "not_supplied" }, c));
+  }
+  if (skipped.length) console.log("Not judged (not an added case or badly formed): " + skipped.join(", "));
+  return cases;
+}
+function readPreviousResults() {
+  const file = path.join(ROOT, "judge_results.js");
+  if (!fs.existsSync(file)) return null;
+  const window = {};
+  try { new Function("window", fs.readFileSync(file, "utf8"))(window); } catch (error) { return null; }
+  return window.JUDGE_RESULTS || null;
+}
+
 function run(args, live = null) {
   if (args.includes("--live")) return runLive(args); // returns a Promise
   if (args.includes("--placeholder")) return { prompts: [], results: null, placeholder: writePlaceholder() };
@@ -353,11 +388,13 @@ function run(args, live = null) {
   const fromFile = argValue(args, "--from-file");
   const previewFile = argValue(args, "--preview");
   const savedOutputs = fromFile ? JSON.parse(fs.readFileSync(path.resolve(fromFile), "utf8")) : null;
+  const casesFile = argValue(args, "--cases");
+  const addedCases = casesFile ? readAddedCases(casesFile, data) : null;
 
   const prompts = [];
   const results = [];
   let totalAnonymized = 0;
-  for (const scenario of data.cases) {
+  for (const scenario of addedCases || data.cases) {
     for (const variant of scenario.variants) {
       const retrieved = variant.turns.map((turn, i) => turn.role === "assistant" ? retrieveForTurn(similarity, scenario, variant.turns, i) : []);
       const anonymizer = createAnonymizer();
@@ -380,8 +417,11 @@ function run(args, live = null) {
       }
       const unsure = ((parsed.value && parsed.value.unsure) || []).map(u => ({ turn_id: u && u.turn_id, note: u && anonymizer.restore(u.note) }));
       const ruleHints = checks.runChecks(scenario, variant);
-      results.push({ case_id: scenario.id, variant_id: variant.id, hints, unsure, unplaceable,
-        comparison: compare(variant, ruleHints, hints) });
+      const result = { case_id: scenario.id, variant_id: variant.id, hints, unsure, unplaceable,
+        comparison: compare(variant, ruleHints, hints) };
+      // Added cases carry a fingerprint, so the page only shows this result for the same conversation.
+      if (addedCases) Object.assign(result, { added_case: true, fingerprint: similarity.fingerprint(variant.turns), judged_at: new Date().toISOString() });
+      results.push(result);
     }
   }
 
@@ -412,6 +452,21 @@ function run(args, live = null) {
     source_file: path.basename(fromFile),
     results
   };
+  if (addedCases) {
+    // Only a real model run may be merged into real results.
+    if (!live) { console.log("Added cases are only written with --live (a real model run). Nothing was written."); return { prompts, results: report }; }
+    const previous = readPreviousResults();
+    if (previous && Array.isArray(previous.results)) {
+      const replaced = new Set(results.map(r => r.variant_id));
+      const merged = Object.assign({}, previous, {
+        results: previous.results.filter(r => !replaced.has(r.variant_id)).concat(results),
+        added_case_runs: (previous.added_case_runs || []).concat([{ generated_at: report.generated_at, model: live.model, tokens_used: live.tokens_used,
+          prompt_version: report.prompt_version, source_file: report.source_file, variants: results.map(r => r.variant_id) }])
+      });
+      Object.keys(report).forEach(k => { if (!(k in merged)) merged[k] = report[k]; });
+      Object.assign(report, merged);
+    }
+  }
   const out = path.join(ROOT, "judge_results.js");
   fs.writeFileSync(out, "/* Generated by judge/run_judge.js. Do not edit by hand. */\nwindow.JUDGE_RESULTS = " + JSON.stringify(report, null, 2) + ";\n");
   const counts = results.reduce((a, r) => (a.hints += r.hints.length, a.review += r.hints.filter(h => h.confidence === "needs_review").length, a.unplaceable += r.unplaceable.length, a), { hints: 0, review: 0, unplaceable: 0 });

@@ -127,6 +127,46 @@ testAsync("--live stops at our own token limit", async () => {
   fs.rmSync(path.join(__dirname, results.source_file), { force: true });
 });
 
+testAsync("--live --cases judges only cases added in the page and merges them into the existing results", async () => {
+  const similarity = require("../engine/similarity.js");
+  const before = fs.readFileSync(OUT, "utf8");
+  const win = {}; new Function("window", before)(win);
+  const previousCount = win.JUDGE_RESULTS && Array.isArray(win.JUDGE_RESULTS.results) ? win.JUDGE_RESULTS.results.length : 0;
+  const turns = [
+    { id: "CUSTOM-01-A-U1", role: "user", text: "I only want information. I am not ready to quit." },
+    { id: "CUSTOM-01-A-A1", role: "assistant", text: "You need to quit drinking completely." }
+  ];
+  const file = path.join(__dirname, "test_added_cases.json");
+  fs.writeFileSync(file, JSON.stringify([
+    { id: "CUSTOM-01", title: "Added test", goal: "information", readiness: "not_ready", origin: "reviewer_added", added_at: "2026-11-08T21:00:00Z",
+      variants: [{ id: "CUSTOM-01-A", label: "Example A", turns }] },
+    { id: "CASE-01", title: "Same ID as a built-in case", origin: "reviewer_added", variants: [{ id: "CASE-01-A", turns }] },
+    { id: "BAD", origin: "data_js", variants: [] }
+  ]));
+  let calls = 0;
+  const fakeFetch = async () => {
+    calls++;
+    const content = JSON.stringify({ findings: [{ turn_id: "CUSTOM-01-A-A1", check: "goal_alignment", quote: "You need to quit drinking completely.",
+      explanation: "The person said they are not ready to quit.", severity: "critical", fix_layer: "prompt" }], unsure: [] });
+    return { ok: true, status: 200, json: async () => ({ model: "fake-model-1", usage: { total_tokens: 50 }, choices: [{ message: { content } }] }) };
+  };
+  try {
+    const { results } = await quietlyAsync(() => judge.runLive(["--live", "--cases", file], { env: { OPENAI_API_KEY: "k" }, fetchImpl: fakeFetch }));
+    assert.equal(calls, 1, "only the one valid added conversation is sent");
+    const added = results.results.find(r => r.variant_id === "CUSTOM-01-A");
+    assert.ok(added && added.added_case && added.hints.length === 1);
+    assert.equal(added.fingerprint, similarity.fingerprint(turns), "the page uses this to match the conversation");
+    assert.equal(results.results.length, previousCount + 1, "earlier results are kept");
+    assert.ok(!results.results.some(r => r.variant_id === "CASE-01-A" && r.added_case), "an added case may not replace a built-in one");
+    const run = results.added_case_runs.slice(-1)[0];
+    assert.equal(run.variants[0], "CUSTOM-01-A");
+    fs.rmSync(path.join(__dirname, run.source_file), { force: true });
+  } finally {
+    fs.rmSync(file, { force: true });
+    fs.writeFileSync(OUT, before);
+  }
+});
+
 async function quietlyAsync(fn) { const log = console.log; console.log = () => {}; try { return await fn(); } finally { console.log = log; } }
 
 test("Dry run builds one prompt per conversation and writes nothing", () => {

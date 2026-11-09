@@ -140,7 +140,17 @@
 
   function round(x) { return Math.round(x * 1000) / 1000; }
 
-  const api = { tokenize, buildIndex, cosine, similarity, rankPassages, sourceText, closestSource, nearRepeats };
+  // Short fingerprint of a conversation (roles + text, FNV-1a). The AI judge stores it with
+  // each result for an added case, and the page only shows that result when the case it is
+  // showing has the same fingerprint (an added case can be removed and its ID reused).
+  function fingerprint(turns) {
+    let h = 0x811c9dc5;
+    const text = (turns || []).map(t => (t && t.role) + ":" + (t && t.text)).join("\n");
+    for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return ("00000000" + h.toString(16)).slice(-8);
+  }
+
+  const api = { tokenize, buildIndex, cosine, similarity, rankPassages, sourceText, closestSource, nearRepeats, fingerprint };
   root.JARASimilarity = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

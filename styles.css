@@ -305,6 +305,15 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--b
 /* Two-reviewer rule (Review panel and Results table). */
 .two-review { display: grid; gap: 4px; margin-top: 10px; padding: 8px 12px; border: 1px solid var(--line); border-left-width: 5px; border-radius: var(--radius-md); background: var(--panel-alt); font-size: .85rem; }
 .two-review-note { color: var(--muted); }
+.two-review-head { display: flex; align-items: center; gap: 8px; }
+/* ✅ / ⏳ minimum-reviews badge with a tooltip on hover and keyboard focus. */
+.review-badge { position: relative; display: inline-block; font-size: 1rem; line-height: 1; cursor: help; border-radius: 6px; }
+.review-badge:focus-visible { outline: none; box-shadow: var(--focus); }
+.review-badge::after { content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); z-index: 20; padding: 5px 9px; border-radius: 6px; background: var(--ink); color: var(--panel); font-size: .75rem; font-weight: 600; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .12s; }
+.review-badge:hover::after, .review-badge:focus-visible::after { opacity: 1; }
+.ai-tag-action { justify-self: start; margin-top: 4px; min-height: 34px; padding: 4px 12px; font-size: .8rem; }
+.add-more-dialog { width: min(460px, calc(100vw - 32px)); }
+.add-more-dialog h2 { margin-top: 0; }
 .two-review-list { margin: 2px 0 0; padding-left: 18px; }
 .two-review-not_reviewed, .two-review-needs_second_reviewer { border-left-color: var(--blue); }
 .two-review-agreed_problem { border-left-color: var(--flag); }
