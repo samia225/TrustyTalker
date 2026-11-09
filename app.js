@@ -976,17 +976,26 @@
   function fillTwoReview(box, key) {
     const c = consensusFor(key);
     const me = reviewerIdentity(reviews.get(key) || {}, userKey("tt-reviews").slice("tt-reviews:".length));
-    const iDecided = c._list.some(r => r.who === me);
+    const people = "\uD83D\uDC65 Reviewed by " + c.reviewers + (c.reviewers === 1 ? " person" : " people");
+    if (!isAdmin()) {
+      // Reviewers decide independently: they see how many people reviewed and their own
+      // answer, never the others' answers or how many more are needed (admin only).
+      box.className = "two-review";
+      const mine = c._list.find(r => r.who === me);
+      box.replaceChildren(element("strong", people));
+      if (mine) box.append(element("span", "Your answer: " + (DECISION_WORDS[mine.decision] || mine.decision), "two-review-note"));
+      return;
+    }
     const note = {
-      not_reviewed: "Nobody has reviewed this yet. At least 2 people need to review it.",
-      needs_second_reviewer: iDecided ? "Your answer is saved. One more person needs to review it." : "One person has reviewed it. Your answer would be the second.",
+      not_reviewed: "0 of " + c.needed + " reviews done: " + c.needed + " more needed.",
+      needs_second_reviewer: c.reviewers + " of " + c.needed + " reviews done: " + (c.needed - c.reviewers) + " more needed.",
       agreed_problem: "This finding now counts as a confirmed problem.",
       agreed_fine: "This finding now counts as fine.",
       reviewers_disagree: "The reviewers do not agree, or one is not sure. A clinician or the admin team makes the final call."
     }[c.status];
     box.className = "two-review two-review-" + c.status;
     const head = element("div", undefined, "two-review-head");
-    head.append(element("strong", "👥 Reviewed by " + c.reviewers + (c.reviewers === 1 ? " person" : " people")), reviewBadge(c));
+    head.append(element("strong", people), reviewBadge(c), element("span", "Admin view", "admin-only-tag"));
     box.replaceChildren(head, element("span", note, "two-review-note"));
     if (c._list.length) {
       const ul = element("ul", undefined, "two-review-list");
@@ -1110,7 +1119,9 @@
       } else action.append(element("span", "Not seen yet", "decision-pill decision-not-reviewed"));
       const problem = element("td");
       problem.append(element("span", "Safety", "badge badge-severity severity-critical"), document.createTextNode(" " + a.problem));
-      tr.append(element("td", a.turn_id), problem, element("td", a.found_by), element("td", alertStatus(a)), action);
+      const status = element("td", alertStatus(a));
+      if (a.consensus) status.append(document.createTextNode(" "), reviewBadge(a.consensus));
+      tr.append(element("td", a.turn_id), problem, element("td", a.found_by), status, action);
       table.tBodies[0].append(tr);
     }
     const scroller = element("div", undefined, "grid-scroll");
@@ -2566,7 +2577,8 @@
       const why = element("td", saved.reason || "-", "reason-cell");
       const c = consensusFor(item.key, index);
       const both = element("td");
-      both.append(element("span", c.reviewers + (c.reviewers === 1 ? " person" : " people"), "consensus-pill consensus-" + c.status), document.createTextNode(" "), reviewBadge(c));
+      if (isAdmin()) both.append(element("span", c.reviewers + (c.reviewers === 1 ? " person" : " people"), "consensus-pill consensus-" + c.status), document.createTextNode(" "), reviewBadge(c));
+      else both.append(element("span", c.reviewers + (c.reviewers === 1 ? " person" : " people"), "consensus-pill"));
       tr.append(element("td", item.scenario.id), problem, decision, why, element("td", [saved.reviewer, roleLabel(saved.reviewer_role)].filter(Boolean).join(", ") || "-", "role-cell"), both, act);
       table.tBodies[0].append(tr);
     }
@@ -3212,12 +3224,7 @@
     const yes = element("button", "Yes, add more cases");
     yes.type = "button";
     const close = () => { if (ask.close) ask.close(); else ask.removeAttribute("open"); };
-    yes.addEventListener("click", () => {
-      close();
-      navigate("cases");
-      const link = document.querySelector('.case-open[data-case-id="' + scenario.id + '"]');
-      if (link) { link.scrollIntoView({ block: "center" }); link.focus({ preventScroll: true }); }
-    });
+    yes.addEventListener("click", () => { close(); openAddCase(); });
     no.addEventListener("click", () => { close(); openCaseReview(scenario.id); });
     actions.append(no, yes);
     ask.replaceChildren(title, text, actions);
@@ -3257,7 +3264,7 @@
   }
   document.getElementById("add-case").addEventListener("click", openAddCase);
   document.getElementById("add-case-close").addEventListener("click", closeAddCase);
-  document.getElementById("add-cancel").addEventListener("click", closeAddCase);
+  document.getElementById("add-cancel").addEventListener("click", () => { closeAddCase(); navigate("cases"); });
   document.getElementById("add-save").addEventListener("click", saveAddCase);
   dialog.addEventListener("cancel", () => { setTimeout(() => { if (addOpener && addOpener.focus) addOpener.focus(); }, 0); });
 
