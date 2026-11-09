@@ -1409,7 +1409,14 @@
   // ---- All cases table (also the case picker) ----------------------------
   // One row per example: case, example, goal, expert label, what our checks
   // found and whether that agrees with the expert. Click a row to open it.
-  let caseFilter = "all";
+  // Browse cases remembers the Sort by, goal and problem choices and the filter chip in this
+  // browser, so they stay set after a reload or when coming back to the page.
+  const savedCaseTools = (() => { const s = readJSON("tt-case-tools", {}); return s && typeof s === "object" ? s : {}; })();
+  function rememberCaseTools() {
+    const value = id => (document.getElementById(id) || {}).value || "";
+    writeJSON("tt-case-tools", { "case-goal": value("case-goal"), "case-problem": value("case-problem"), "case-sort": value("case-sort"), filter: caseFilter });
+  }
+  let caseFilter = savedCaseTools.filter || "all";
   let gridRows = []; // [{ caseId, variantId, tr, flagged, unsure, disagree }]
   function reviewedCount(caseId) {
     let n = 0;
@@ -1466,10 +1473,11 @@
         open.addEventListener("click", event => { event.stopPropagation(); openCaseReview(scenario.id); });
         caseCell.append(open);
         if (vIndex === 0 && scenario.origin === "reviewer_added") caseCell.append(element("span", "Added", "case-tag"));
+        if (scenario.title) caseCell.append(element("span", scenario.title, "case-title")); // so a new case is easy to recognise
         const foundCell = element("td");
         if (critical) foundCell.append(element("span", "Safety", "badge badge-severity severity-critical"), document.createTextNode(" "));
         foundCell.append(document.createTextNode(found));
-        tr.append(caseCell, element("td", variant.label || variant.id), element("td", pretty(scenario.goal || "")),
+        tr.append(caseCell, element("td", variant.label || variant.id), element("td", scenario.goal ? sentence(scenario.goal) : ""),
           foundCell);
         tr.addEventListener("click", () => openCaseReview(scenario.id)); // mouse: whole row; keyboard: the case button
         table.tBodies[0].append(tr);
@@ -1490,7 +1498,7 @@
       const button = element("button", label + " (" + gridRows.filter(test).length + ")", "filter-button");
       button.type = "button";
       button.dataset.filter = key;
-      button.addEventListener("click", () => { caseFilter = key; applyCaseFilter(); });
+      button.addEventListener("click", () => { caseFilter = key; applyCaseFilter(); rememberCaseTools(); });
       filters.append(button);
     }
     const scroller = element("div", undefined, "grid-scroll");
@@ -1498,7 +1506,7 @@
     const empty = element("p", "No examples match. Clear the search or choose All.", "muted case-list-empty");
     empty.id = "case-list-empty";
     const tools = element("div", undefined, "case-tools");
-    const keep = id => { const old = document.getElementById(id); return old ? old.value : ""; };
+    const keep = id => { const old = document.getElementById(id); return old ? old.value : (id === "case-search" ? "" : savedCaseTools[id] || ""); };
     const searchWrap = element("div", undefined, "field");
     const searchLabel = element("label", "Search");
     searchLabel.htmlFor = "case-search";
@@ -1513,7 +1521,8 @@
       const first = element("option", all); first.value = ""; sel.append(first);
       for (const [value, text] of options) { const o = element("option", text); o.value = value; sel.append(o); }
       sel.value = keep(id);
-      sel.addEventListener("change", applyCaseFilter);
+      if (sel.value !== keep(id)) sel.value = ""; // a saved choice that no longer exists
+      sel.addEventListener("change", () => { applyCaseFilter(); rememberCaseTools(); });
       wrap.append(l, sel);
       return wrap;
     };
