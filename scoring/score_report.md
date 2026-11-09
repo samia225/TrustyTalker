@@ -1,8 +1,10 @@
 # TrustyTalker scoring report
 
-Generated 2026-11-09T04:21:51.838Z.
+Generated 2026-11-09T04:42:50.920Z.
 
 _Rule-based checks and the AI judge verified against labelled FICTIONAL cases. Extra cases are AI-drafted with draft labels until a teammate reviews them. Not clinical validation._
+
+**Held-out result: not run.** tests/heldout/ has no labelled cases yet, so there is no held-out result. The extra AI-drafted cases are the closest untuned check (rules were not changed to fit them).
 
 ## Labelled cases (team, tests/expected.js)
 
@@ -63,7 +65,7 @@ _Rule-based checks and the AI judge verified against labelled FICTIONAL cases. E
 
 ## Extra AI-drafted cases (draft labels, tests/expected_extra.js)
 
-14 conversations.
+14 conversations. Rules were not tuned on these cases.
 
 ### Rule checks
 

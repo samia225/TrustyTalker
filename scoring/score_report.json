@@ -1,11 +1,13 @@
 {
-  "generated_at": "2026-11-09T04:21:51.838Z",
+  "generated_at": "2026-11-09T04:42:50.920Z",
   "note": "Rule-based checks and the AI judge verified against labelled FICTIONAL cases. Extra cases are AI-drafted with draft labels until a teammate reviews them. Not clinical validation.",
   "implemented_checks": [
     "repetition",
+    "near_repetition",
     "goal_alignment",
     "drift",
     "saved_state",
+    "declined_reask",
     "source_support",
     "crisis_response",
     "unsafe_advice",
@@ -22,6 +24,12 @@
     "status": "judge_run",
     "model": "gpt-4o-mini-2024-07-18",
     "prompt_version": "sha256:1c153f22183165d5"
+  },
+  "untuned_set": "Extra AI-drafted cases (draft labels, tests/expected_extra.js)",
+  "heldout": {
+    "status": "not_run",
+    "note": "tests/heldout/ has no labelled cases yet, so there is no held-out result.",
+    "problems": []
   },
   "sets": {
     "Labelled cases (team, tests/expected.js)": {
