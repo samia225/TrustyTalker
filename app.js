@@ -876,7 +876,7 @@
   // human_review object for one hint, or null when nothing was entered.
   function humanReviewFor(key, hint) {
     const saved = reviews.get(key);
-    if (!saved || (!saved.decision && !saved.reason && !saved.evidence && !(saved.ratings && Object.keys(saved.ratings).length))) return null;
+    if (!saved || (!saved.decision && !saved.reason && !saved.evidence && !saved.suggestion && !(saved.ratings && Object.keys(saved.ratings).length))) return null;
     return {
       decision: saved.decision || null,
       reason: saved.reason,
@@ -885,8 +885,50 @@
       reviewer_role: saved.reviewer_role || null,
       reviewer: saved.reviewer || null,
       reviewer_id: saved.reviewer_id || null,
-      ratings: ratingsExport(saved.ratings)
+      ratings: ratingsExport(saved.ratings),
+      // A better reply or resource the reviewer suggests. Written by a person, never by AI.
+      suggestion: saved.suggestion || null,
+      suggestion_source: saved.suggestion ? "human_reviewer" : null
     };
+  }
+  // ---- Reviewer suggestions -----------------------------------------------
+  // Better replies or resources that reviewers wrote for one JARA reply, labelled with
+  // the reviewer's role. Always a person's suggestion, never the AI judge's.
+  function suggestionsFor(turnId, skipMine) {
+    const mine = skipMine ? reviewerIdentity({}, userKey("tt-reviews").slice("tt-reviews:".length)) : null;
+    const out = [];
+    for (const records of decisionIndex().values()) {
+      for (const r of records) {
+        if (r.turn_id !== turnId || !r.suggestion || !String(r.suggestion).trim()) continue;
+        if (skipMine && (r.who === mine || (currentAccount() && r.reviewer_id === currentAccount().id))) continue;
+        out.push({ role: r.reviewer_role, text: String(r.suggestion).trim(), demo: !!r.demo });
+      }
+    }
+    return out;
+  }
+  function suggestionTag(list) {
+    const tag = element("div", undefined, "rs-tag");
+    tag.setAttribute("role", "note");
+    tag.setAttribute("aria-label", "Reviewer suggestions");
+    const head = element("div", undefined, "rs-head");
+    head.append(element("span", "REVIEWER SUGGESTION", "rs-badge"), element("span", "From a person, not AI.", "rs-who"));
+    tag.append(head);
+    for (const s of list) {
+      const row = element("p", undefined, "rs-row");
+      row.append(element("strong", "Suggested by a " + (s.role ? roleLabel(s.role) : "reviewer") + (s.demo ? " (fictional demo reviewer)" : "") + ": "),
+        document.createTextNode(s.text));
+      tag.append(row);
+    }
+    return tag;
+  }
+  function renderSuggestionTags(scenario) {
+    document.querySelectorAll(".rs-tag").forEach(node => node.remove());
+    for (const variant of scenario.variants) for (const turn of variant.turns) {
+      if (turn.role !== "assistant") continue;
+      const list = suggestionsFor(turn.id, false);
+      const node = turnNode(turn.id);
+      if (list.length && node) node.append(suggestionTag(list));
+    }
   }
 
   // ---- Reviewer ratings (Tyler, Nov 8) ------------------------------------
@@ -1453,6 +1495,7 @@
   }
   function renderJudgeComparison(scenario, results) {
     document.querySelectorAll(".ai-tag").forEach(node => node.remove());
+    renderSuggestionTags(scenario); // reviewers' suggestions under each JARA reply (people, not AI)
     const box = document.getElementById("judge-compare");
     if (!box) return;
     box.replaceChildren();
@@ -2024,48 +2067,35 @@
     };
   }
 
-  function flowBox(title, number, detail, tone, action) {
-    const box = element("div", undefined, "flow-box" + (tone ? " flow-" + tone : ""));
-    box.append(element("span", title, "flow-title"), element("strong", String(number), "flow-number"));
-    if (detail) box.append(element("span", detail, "flow-detail"));
-    if (action) box.append(action);
-    return box;
-  }
+  // Four steps in one row (checked, flagged, decided, confirmed), each with one big number
+  // and a short note, plus one progress bar. Simpler to read than the two-column flow below.
   function flowDiagram(n) {
-    // Main column top to bottom; side boxes branch off to the right, like the
-    // "records excluded" boxes in a PRISMA 2020 diagram.
-    const wrap = element("div", undefined, "flow");
-    wrap.setAttribute("role", "list");
-    wrap.setAttribute("aria-label", "Flow from conversations to confirmed problems");
-    const rows = [
-      [flowBox("Conversations checked", n.examples, "by " + n.checks + " automatic checks"),
-        flowBox("Nothing flagged", n.clean, "not a pass: the checks can miss things", "side")],
-      [flowBox("Flagged for you", n.findings, "in " + n.flagged + " conversations" + (n.critical ? ", " + n.critical + " safety" : ""), "flag"),
-        flowBox("Still to decide", n.left, "", "side")],
-      [flowBox("Decided by you", n.reviewed, "of " + n.findings),
-        flowBox("No or not sure", n.rejected + n.unsure, n.unsure ? n.rejected + " no · " + n.unsure + " not sure" : "", "side")],
-      [flowBox("Confirmed problems", n.confirmed, "become regression tests for JARA", "confirm"), null]
+    const wrap = element("div", undefined, "pipeline-wrap");
+    const list = element("ol", undefined, "pipeline");
+    list.setAttribute("aria-label", "From conversations to confirmed problems");
+    const steps = [
+      ["Checked", n.examples, "conversations, by " + n.checks + " checks", n.clean + " had nothing flagged (not a pass)", ""],
+      ["Flagged", n.findings, "replies in " + n.flagged + " conversations", n.critical ? n.critical + " are safety problems" : "", "flag"],
+      ["Decided", n.reviewed, "of " + n.findings + " by reviewers", n.left + " still to decide" + (n.rejected + n.unsure ? " · " + n.rejected + " no, " + n.unsure + " not sure" : ""), "decided"],
+      ["Confirmed", n.confirmed, "real problems", "each becomes a regression test", "confirm"]
     ];
-    rows.forEach(([main, side], i) => {
-      const row = element("div", undefined, "flow-row" + (side ? " has-side" : ""));
-      row.setAttribute("role", "listitem");
-      main.classList.add("flow-main");
-      row.append(main);
-      if (side) {
-        const arrow = element("span", undefined, "flow-branch");
-        arrow.setAttribute("aria-hidden", "true");
-        row.append(arrow, side);
-      }
-      if (i < rows.length - 1) {
-        const down = element("span", undefined, "flow-down");
-        down.setAttribute("aria-hidden", "true");
-        row.append(down);
-      }
-      wrap.append(row);
+    steps.forEach(([label, value, detail, note, tone], i) => {
+      const step = element("li", undefined, "pipe-step" + (tone ? " pipe-" + tone : ""));
+      const head = element("div", undefined, "pipe-head");
+      head.append(element("span", String(i + 1), "pipe-num"), element("span", label, "pipe-label"));
+      step.append(head, element("strong", String(value), "pipe-value"), element("span", detail, "pipe-detail"));
+      if (note) step.append(element("span", note, "pipe-note"));
+      list.append(step);
     });
+    const bar = element("progress", undefined, "pipe-progress");
+    bar.max = Math.max(1, n.findings);
+    bar.value = n.reviewed;
+    bar.id = "pipe-progress";
+    const barLabel = element("label", n.reviewed + " of " + n.findings + " flagged replies decided", "pipe-progress-label");
+    barLabel.htmlFor = "pipe-progress";
+    wrap.append(list, barLabel, bar);
     return wrap;
   }
-
   function renderStart(n) {
     const text = document.getElementById("start-text");
     const button = document.getElementById("start-button");
@@ -2168,8 +2198,8 @@
     ["developer", "JARA developer", "Engineer who builds JARA. Gets repeats, sources, certainty and what JARA asks for."]
   ];
   const ROLE_CHECKS = {
-    peer: ["goal_alignment", "drift", "declined_reask", "premature_advice", "respectful_language", "information_gathering", "repetition", "near_repetition", "over_refusal", "user_feedback"],
-    developer: ["repetition", "near_repetition", "drift", "saved_state", "source_support", "overconfidence", "information_gathering", "premature_advice", "user_feedback"]
+    peer: ["goal_alignment", "drift", "declined_reask", "resource_missing", "premature_advice", "respectful_language", "information_gathering", "repetition", "near_repetition", "over_refusal", "user_feedback"],
+    developer: ["repetition", "near_repetition", "drift", "saved_state", "resource_missing", "resource_location", "source_support", "overconfidence", "information_gathering", "premature_advice", "user_feedback"]
   };
   let reviewerRole = "";
   function roleLabel(id) { return (ROLES.find(r => r[0] === id) || [null, ""])[1]; }
@@ -2559,7 +2589,24 @@
     evidence.placeholder = "Leave blank to use the highlighted words";
     evidence.value = saved.evidence || "";
     more.append(element("summary", "Add evidence or a correction"), evidenceLabel, evidence);
-    reasonWrap.append(reasonLabel, reason, more);
+    // A better reply or resource for JARA, from this reviewer (a person, not AI).
+    const suggestWrap = element("div", undefined, "rv-suggest");
+    const suggestLabel = element("label", "Suggest a better reply or resource (optional)");
+    suggestLabel.htmlFor = "rv-suggest-text";
+    const suggest = element("textarea");
+    suggest.id = "rv-suggest-text";
+    suggest.rows = 2;
+    suggest.placeholder = "For example: Ask what they want to focus on, and offer information without a quit plan.";
+    suggest.value = saved.suggestion || "";
+    const othersSuggest = element("div", undefined, "rv-suggest-others");
+    const refreshSuggestions = () => {
+      othersSuggest.replaceChildren();
+      if (!(reviews.get(key) || {}).decision) return; // answer first, so others do not sway you
+      const list = suggestionsFor(hint.turn_id, true);
+      if (list.length) othersSuggest.append(suggestionTag(list));
+    };
+    suggestWrap.append(suggestLabel, element("small", "Shown to the JARA team with your reviewer role. Never labelled as AI.", "muted small"), suggest, othersSuggest);
+    reasonWrap.append(reasonLabel, reason, more, suggestWrap);
 
     function save(decision) {
       const previous = reviews.get(key) || {};
@@ -2567,6 +2614,7 @@
         variant_id: item.variant.id, turn_id: hint.turn_id, check_id: hint.check_id,
         decision: decision !== undefined ? decision : (previous.decision || null),
         reason: reason.value.trim(), evidence: evidence.value.trim(),
+        suggestion: suggest.value.trim() || undefined,
         reviewed_at: new Date().toISOString(), reviewer_role: reviewerRole || null,
         reviewer: currentAccount() ? currentAccount().name : "Guest",
         reviewer_id: currentAccount() ? currentAccount().id : null,
@@ -2575,6 +2623,7 @@
       paint();
       refreshTwoReview();
       if (ratingBox.refreshOthers) ratingBox.refreshOthers();
+      refreshSuggestions();
     }
     const CHOICES = [
       ["confirmed", "Yes", "it is a problem (confirm)"],
@@ -2644,6 +2693,8 @@
       note.classList.remove("is-error");
     });
     evidence.addEventListener("input", () => save());
+    suggest.addEventListener("input", () => save());
+    refreshSuggestions();
     paint();
     return panel;
   }
@@ -3373,7 +3424,7 @@
   window.addEventListener("popstate", () => { showView(viewFromHash() || "overview"); });
 
   // ---- Light / dark mode -------------------------------------------------
-  // Follows the computer's setting until the person picks one; the choice is
+  // Light by default (ui/theme-init.js) until the person picks dark; the choice is
   // remembered in this browser when storage is available.
   const themeButton = document.getElementById("theme-toggle");
   const darkQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
@@ -3642,15 +3693,16 @@
   function removeDemoReviews() { for (const [id] of DEMO_REVIEWERS) { try { localStorage.removeItem("tt-reviews:" + id); } catch (error) { /* storage off */ } } }
   // Fixed FICTIONAL ratings on six demo findings, so "Others' scores" has numbers on known
   // replies without any clicks. Loaded once per browser, marked like the demo reviews above
-  // (demo: true, "Demo reviewer (fictional)"), and "Remove demo reviews" clears them for good.
+  // (demo: true, "Demo reviewer (fictional)"), and "Remove demo reviews" clears them. Three of them
+  // also carry a fictional reviewer suggestion (a better reply), labelled with the reviewer role.
   // Base scores per item, in RATING_ITEMS order: understanding, safety, usefulness,
   // resource navigation, information quality, readability, acceptability ("na" = not applicable).
   const DEMO_SEED = [
-    ["CASE-10-B-A2", "goal_alignment", [1, 3, 2, "na", 3, 4, 2]],      // demo story: quit plan for someone not ready
+    ["CASE-10-B-A2", "goal_alignment", [1, 3, 2, "na", 3, 4, 2], { clinician: "Ask what would help with sleep first, and offer information on cutting down without a quit plan, since they said they are not ready.", peer: "Say it is their choice, ask what they want to try, and skip the quit plan." }],      // demo story: quit plan for someone not ready
     ["CASE-01-B-A1", "goal_alignment", [1, 2, 1, "na", 3, 4, 1]],      // "You need to quit" (critical: clinicians only)
-    ["CASE-12-B-A2", "crisis_response", [1, 1, 1, 1, 3, 4, 3]],        // missed risk signs (critical: clinicians only)
+    ["CASE-12-B-A2", "crisis_response", [1, 1, 1, 1, 3, 4, 3], { clinician: "Acknowledge feeling like a burden, ask directly about thoughts of suicide, and offer 988 or 911 before anything about jobs." }],        // missed risk signs (critical: clinicians only)
     ["CASE-02-B-A1", "drift", [1, 4, 2, "na", 3, 4, 3]],               // follows the old goal
-    ["CASE-05-B-A1", "source_support", [3, 3, 2, 2, 1, 4, 4]],         // "free" when the record says unknown
+    ["CASE-05-B-A1", "source_support", [3, 3, 2, 2, 1, 4, 4], { developer: "Say the record does not list the cost and suggest calling the clinic to ask." }],         // "free" when the record says unknown
     ["CASE-P2-07-B-A1", "respectful_language", [3, 3, 3, "na", 3, 4, 1]] // "alcoholics"
   ];
   function seedDemoRatings() {
@@ -3658,7 +3710,7 @@
     const nudge = [0, 1, -1, 0, 1, 0]; // small, fixed differences between reviewers
     DEMO_REVIEWERS.forEach(([id, role], i) => {
       const entries = new Map((readJSON("tt-reviews:" + id, []) || []).filter(e => Array.isArray(e) && e.length === 2));
-      DEMO_SEED.forEach(([turnId, checkId, base], j) => {
+      DEMO_SEED.forEach(([turnId, checkId, base, suggestions], j) => {
         const item = queue.find(q => q.hint.turn_id === turnId && q.hint.check_id === checkId);
         if (!item || !canReview(item.hint, role)) return;
         const ratings = {};
@@ -3669,13 +3721,15 @@
           decision: (i + j) % 7 === 3 ? "unsure" : "confirmed",
           reason: "Demo reviewer (fictional), not a real review.", evidence: "",
           reviewed_at: "2026-11-08T" + String(10 + i).padStart(2, "0") + ":00:00.000Z",
-          reviewer_role: role, reviewer: "Demo reviewer " + (i + 1), reviewer_id: id, demo: true, ratings });
+          reviewer_role: role, reviewer: "Demo reviewer " + (i + 1), reviewer_id: id, demo: true, ratings,
+          // first demo reviewer of each role writes the suggestion (a fictional person, not AI)
+          suggestion: suggestions && suggestions[role] && DEMO_REVIEWERS.findIndex(([, r]) => r === role) === i ? suggestions[role] : undefined });
       });
       if (entries.size) writeJSON("tt-reviews:" + id, [...entries]);
     });
   }
   try {
-    if (!localStorage.getItem("tt-demo-seeded")) { seedDemoRatings(); localStorage.setItem("tt-demo-seeded", "1"); }
+    if (!localStorage.getItem("tt-demo-seeded-2")) { seedDemoRatings(); localStorage.setItem("tt-demo-seeded-2", "1"); } // -2: adds demo suggestions
   } catch (error) { /* storage off: no demo ratings */ }
   const demoButton = document.getElementById("demo-reviews");
   if (demoButton) {

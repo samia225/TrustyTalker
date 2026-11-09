@@ -12,7 +12,7 @@ and production acceptance are separate from this demonstration.
 | 4 | Three or more added fictional cases, with IDs | 29 added: CASE-10 to 18, CASE-P2-01 to 10, CASE-19 to 21 (MCRC), CASE-AI-01 to 07 (`cases_extra.js`). See the README table. |
 | 5 | Example exported finding JSON, mismatch and non-mismatch | `docs/example_export_CASE-01.json` (CASE-01-B flagged, CASE-01-A no hints) |
 | 6 | Actual results, known failures, unfinished work | "Results" and "Implemented and TODO" below; `docs/p1_checks_limitations.md`, `docs/p2_checks_limitations.md`, `scoring/score_report.md` |
-| 7 | Demo recording or screenshots | Screenshots in `guide/` (guide-0 to guide-10). Demo recording: _[add link]_ |
+| 7 | Demo recording or screenshots | Live demo: https://samia225.github.io/TrustyTalker/ . Screenshots in `guide/` (guide-0 to guide-10) and the live demo path in the README. Slides: linked at the top of the README. |
 | 8 | Dependencies, licences, external services | `docs/dependencies_and_services.md` |
 
 ## The mismatch
@@ -94,10 +94,10 @@ node scoring/score_report.js                 caught / missed / wrongly flagged, 
 
 **Which parts are implemented and which remain TODO?**
 - **Implemented:**
-  - 16 rule-based checks: repetition, near_repetition, goal_alignment, drift, saved_state,
+  - 18 rule-based checks: repetition, near_repetition, goal_alignment, drift, saved_state,
     declined_reask, source_support, crisis_response, unsafe_advice, over_refusal,
     respectful_language, scope_transparency, sycophancy, premature_advice,
-    information_gathering, overconfidence.
+    information_gathering, overconfidence, resource_missing, resource_location.
   - The state tracker, input and hint validation, TF-IDF source retrieval, and the
     regression suite.
   - The scoring report with rules vs AI judge agreement, and the reviewer panel (separate
