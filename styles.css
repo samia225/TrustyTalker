@@ -77,6 +77,8 @@
 /* 2. Base ------------------------------------------------------------------ */
 * { box-sizing: border-box; }
 html, body { overflow-x: hidden; }
+/* clip hides sideways overflow like hidden, but does not stop position: sticky from working */
+@supports (overflow: clip) { html, body { overflow-x: clip; } }
 body { margin: 0; background: var(--bg); color: var(--ink); }
 ::selection { background: var(--blue-wash); color: var(--ink); }
 h1, h2, h3 { color: var(--ink); line-height: 1.25; letter-spacing: 0; }
@@ -1006,3 +1008,10 @@ textarea[aria-invalid="true"] { border-color: var(--flag); box-shadow: 0 0 0 3px
 .others-w8 { width: 80%; }
 .others-w9 { width: 90%; }
 .others-w10 { width: 100%; }
+/* Review page: the conversation stays on screen while the reviewer scrolls the decision
+   panel (reason, ratings) on the right. Wide screens only; stacked layout is unchanged. */
+@media (min-width: 981px) {
+  .rv-grid:not(.rv-grid-even) > .rv-convo { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; overscroll-behavior: contain; }
+  .rv-grid:not(.rv-grid-even) > .rv-panel { position: static; }
+  .rv-grid:not(.rv-grid-even) > .rv-convo .rv-turns { max-height: none; overflow: visible; }
+}

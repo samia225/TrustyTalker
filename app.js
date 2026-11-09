@@ -2467,7 +2467,11 @@
     turns.setAttribute("aria-label", "Whole conversation, " + variant.turns.length + " messages. Scroll to read it all.");
     requestAnimationFrame(() => {
       const target = turns.querySelector(".rv-target");
-      if (target && turns.scrollHeight > turns.clientHeight) turns.scrollTop = Math.max(0, target.offsetTop - 60);
+      if (!target) return;
+      if (turns.scrollHeight > turns.clientHeight) { turns.scrollTop = Math.max(0, target.offsetTop - 60); return; }
+      // Wide screens: the whole conversation box is the scroller (it stays on screen).
+      const box = turns.closest(".rv-convo");
+      if (box && box.scrollHeight > box.clientHeight) box.scrollTop += target.getBoundingClientRect().top - box.getBoundingClientRect().top - 60;
     });
     return turns;
   }
