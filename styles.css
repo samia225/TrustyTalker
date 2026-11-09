@@ -900,6 +900,7 @@ textarea[aria-invalid="true"] { border-color: var(--flag); box-shadow: 0 0 0 3px
    sign up or continue as a guest under the card). The hero banner is hidden here. */
 body.on-welcome .hero { display: none; }
 body.on-welcome .nav-steps, body.on-welcome .nav-browse { display: none; }
+body.on-welcome .theme-toggle { margin-left: auto; } /* keeps the toggle at the right once the nav links are gone */
 body.on-welcome main { padding-top: clamp(28px, 7vh, 80px); }
 .welcome-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, 440px); gap: clamp(32px, 6vw, 96px); align-items: start; max-width: 1120px; margin: 0 auto 40px; }
 .welcome-intro { padding: clamp(8px, 6vh, 72px) 0 8px; }
@@ -929,6 +930,9 @@ body.on-welcome main { padding-top: clamp(28px, 7vh, 80px); }
 .auth-hint { margin: 0; color: var(--muted); font-size: .84rem; text-align: center; }
 .welcome-layout #panel-guest > button { justify-self: stretch; min-height: 50px; border-radius: 10px; font-size: 1.05rem; }
 .welcome-layout .signup-wizard .field-row { grid-template-columns: 1fr; }
+/* The card is narrow, so sign-up choices stack as full-width rows instead of side-by-side columns. */
+.welcome-layout .group-cards, .welcome-layout .auth-roles .role-options { grid-template-columns: 1fr; }
+.welcome-layout .group-cards .role-option { padding: 14px 16px; }
 .auth-switch { padding: 16px 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); text-align: center; }
 .auth-switch p { margin: 0; color: var(--muted); }
 .auth-switch p[hidden] { display: none; }
