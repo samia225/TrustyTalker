@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; connect-src 'none'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
   <title>TrustyTalker: JARA conversation review</title>
+  <!-- Runs first, without defer: applies the saved light / dark theme before the page is drawn (no flash). -->
+  <script src="ui/theme-init.js"></script>
   <link rel="stylesheet" href="styles.css">
   <!-- Load order matters: data, engine, checks, answer key, UI modules, then app.js. -->
   <script src="data.js" defer></script>
@@ -47,6 +49,7 @@
         <li><a href="#results" data-nav="results"><span class="nav-num" aria-hidden="true">3</span>Results</a></li>
       </ol>
       <a class="nav-browse" href="#cases" data-nav="cases">Browse cases</a>
+      <a class="nav-browse nav-about" href="#about" data-nav="about">About</a>
       <div class="account" id="account" aria-label="Your account"></div>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
     </nav>
@@ -71,25 +74,37 @@
     <div id="admin-banner" class="admin-banner" role="status" hidden></div>
     <!-- WELCOME: log in, sign up or continue as a guest -->
     <div class="view" data-view="welcome" id="view-welcome" hidden>
+     <div class="welcome-layout">
+      <section class="welcome-intro" aria-labelledby="intro-heading">
+        <p class="welcome-kicker">TrustyTalker for JARA</p>
+        <h2 id="intro-heading">Catch the replies that miss what people asked for.</h2>
+        <p class="welcome-line">TrustyTalker reads JARA's conversations, flags replies that don't fit the person, and lets you make the call.</p>
+        <ul class="welcome-points">
+          <li><span class="welcome-icon" aria-hidden="true">👤</span><span><strong>Follows the person</strong>Their goal, readiness and preferences, turn by turn.</span></li>
+          <li><span class="welcome-icon" aria-hidden="true">💬</span><span><strong>Flags with evidence</strong>Every flag quotes JARA's exact words and how serious it is.</span></li>
+          <li><span class="welcome-icon" aria-hidden="true">✅</span><span><strong>You decide</strong>Confirm or reject each flag in a few clicks.</span></li>
+        </ul>
+      </section>
+      <div class="auth-column">
       <section class="auth-card" aria-labelledby="auth-heading">
-        <h2 id="auth-heading">How do you want to start?</h2>
+        <h2 id="auth-heading">Welcome to TrustyTalker</h2>
         <div class="auth-tabs" role="tablist" aria-label="Sign in options">
           <button class="auth-tab" type="button" role="tab" id="tab-login" aria-controls="panel-login" data-tab="login" aria-selected="true">Log in</button>
           <button class="auth-tab" type="button" role="tab" id="tab-signup" aria-controls="panel-signup" data-tab="signup" aria-selected="false" tabindex="-1">Sign up</button>
-          <button class="auth-tab" type="button" role="tab" id="tab-guest" aria-controls="panel-guest" data-tab="guest" aria-selected="false" tabindex="-1">Continue as a guest</button>
+          <button class="auth-tab" type="button" role="tab" id="tab-guest" aria-controls="panel-guest" data-tab="guest" aria-selected="false" tabindex="-1">Guest</button>
         </div>
         <form class="auth-panel" id="panel-login" role="tabpanel" aria-labelledby="tab-login" data-tab="login" novalidate>
-          <button type="button" class="google-button secondary">Continue with Google</button>
-          <p class="google-note muted small" tabindex="-1" hidden>Google sign-in needs MCRC's login server, so it is not available in this offline demo. Use your email below, or continue as a guest.</p>
-          <p class="or-line" aria-hidden="true"><span>or with email</span></p>
-          <div class="field"><label for="login-email">Email</label><input id="login-email" type="email" autocomplete="username" required></div>
-          <div class="field"><label for="login-password">Password</label><input id="login-password" type="password" autocomplete="current-password" required></div>
-          <p class="muted">Your reviewing role comes from your sign-up.</p>
+          <div class="field"><label for="login-email">Email</label><input id="login-email" type="email" autocomplete="username" placeholder="you@example.com" required></div>
+          <div class="field"><label for="login-password">Password</label><input id="login-password" type="password" autocomplete="current-password" placeholder="Your password" required></div>
           <p class="form-error" id="login-error" role="alert"></p>
-          <button type="submit">Log in</button>
+          <button type="submit" class="auth-primary">Log in</button>
+          <p class="or-line" aria-hidden="true"><span>or</span></p>
+          <button type="button" class="google-button secondary"><svg class="google-g" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 2.9-2.2 5.4-4.7 7.1l7.6 5.9c4.4-4.1 6.9-10.1 6.9-17.5z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>Continue with Google</button>
+          <p class="google-note muted small" tabindex="-1" hidden>Google sign-in needs MCRC's login server, so it is not available in this offline demo. Use your email above, or continue as a guest.</p>
+          <p class="auth-hint">Your reviewing role comes from your sign-up.</p>
         </form>
         <form class="auth-panel signup-wizard" id="panel-signup" role="tabpanel" aria-labelledby="tab-signup" data-tab="signup" hidden novalidate>
-          <button type="button" class="google-button secondary">Continue with Google</button>
+          <button type="button" class="google-button secondary"><svg class="google-g" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 2.9-2.2 5.4-4.7 7.1l7.6 5.9c4.4-4.1 6.9-10.1 6.9-17.5z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>Continue with Google</button>
           <p class="google-note muted small" tabindex="-1" hidden>Google sign-in needs MCRC's login server, so it is not available in this offline demo. Sign up with your email below, or continue as a guest.</p>
           <p class="or-line" aria-hidden="true"><span>or with email</span></p>
           <p class="wizard-progress" id="wizard-progress" aria-live="polite">Step 1 of 4</p>
@@ -211,8 +226,15 @@
           </div>
           <button type="button" class="link-button" id="verify-back">Back to log in</button>
         </section>
-        <p class="auth-note">Demo sign-in: accounts are saved only in this browser, on this computer, and the password is stored as a protected hash. Do not use a password you use anywhere else. Real accounts would come from MCRC.</p>
       </section>
+      <div class="auth-switch">
+        <p hidden>Already have an account? <button type="button" class="link-button" data-tab-go="login">Log in</button></p>
+        <p>New to TrustyTalker? <button type="button" class="link-button" data-tab-go="signup">Create an account</button></p>
+        <p>Just looking? <button type="button" class="link-button" data-tab-go="guest">Continue as a guest</button></p>
+      </div>
+      <p class="auth-note">Demo sign-in: accounts are saved only in this browser, on this computer, and the password is stored as a protected hash. Do not use a password you use anywhere else. Real accounts would come from MCRC.</p>
+      </div>
+     </div>
     </div>
 
     <!-- VISUAL GUIDE: step by step with pictures -->
@@ -273,6 +295,61 @@
         </li>
         </ol>
       </section>
+    </div>
+
+    <!-- ABOUT: what TrustyTalker is, how it works, what it is not -->
+    <div class="view" data-view="about" id="view-about" hidden>
+      <div class="view-bar"><a class="back-button" href="#overview">Back to Home</a></div>
+      <div class="about-grid">
+        <section class="about-card about-wide" aria-labelledby="about-what">
+          <h2 id="about-what">What TrustyTalker is</h2>
+          <p>JARA is MCRC Health's research-stage support and resource-navigation chatbot for adults with substance use and mental health concerns. It is non-diagnostic and non-prescriptive. Some of its replies sound supportive but miss what the person asked for: pushing someone to quit when they only wanted information, forgetting an earlier preference, stating something its sources do not support, or missing signs of risk.</p>
+          <p>TrustyTalker finds those replies in fictional conversations, before a real person ever sees them. It is built for JARA's developers, researchers and clinical reviewers.</p>
+        </section>
+
+        <section class="about-card" aria-labelledby="about-how">
+          <h2 id="about-how">How it works</h2>
+          <ol class="about-steps">
+            <li><strong>Follows the person.</strong> At every turn it tracks what the person has said: their goal, readiness to change, preferences and anything they declined. The newest statement wins.</li>
+            <li><strong>Runs rule-based checks.</strong> 16 checks look at each JARA reply. Every flag quotes JARA's exact words, names the turn, explains why, and says how serious it is (critical or quality) and where JARA would need fixing.</li>
+            <li><strong>Gets a second opinion.</strong> An optional AI judge reviewed the same fictional conversations ahead of time. Where it and the rules disagree, the reply needs a closer look.</li>
+            <li><strong>A person decides.</strong> Reviewers answer Yes, No or Not sure for each flag. Confirmed problems become regression tests, rerun after every change to JARA.</li>
+          </ol>
+        </section>
+
+        <section class="about-card" aria-labelledby="about-checks">
+          <h2 id="about-checks">What it checks</h2>
+          <ul class="about-list">
+            <li><strong>Fit with the person:</strong> pushing a goal they did not choose, holding on to an old goal, treating someone else's words as theirs, re-asking something they declined.</li>
+            <li><strong>Safety:</strong> missed signs of risk, unsafe advice, refusing safety information such as where to get naloxone, agreeing with a risky belief.</li>
+            <li><strong>Staying in role:</strong> diagnosing, prescribing or giving medical advice instead of providing resources, and overstating confidentiality.</li>
+            <li><strong>Accuracy:</strong> service details its sources do not support, claims that something was saved, overconfident promises.</li>
+            <li><strong>Conversation quality:</strong> repeating itself, advice before asking enough, stigmatizing language.</li>
+          </ul>
+        </section>
+
+        <section class="about-card" aria-labelledby="about-results">
+          <h2 id="about-results">How well it works so far</h2>
+          <p>On 59 labelled fictional conversations, the rules found 42 of 44 problem replies, including all 17 critical ones, and flagged none of the fine replies. The two misses were mildly pushy replies that only the AI judge caught.</p>
+          <p class="muted">These are development results: the team saw every case while writing the rules. Clinician review is the next step.</p>
+        </section>
+
+        <section class="about-card about-limits" aria-labelledby="about-not">
+          <h2 id="about-not">What it is not</h2>
+          <ul class="about-list">
+            <li>Not a clinical tool. It never diagnoses, scores or approves anything.</li>
+            <li>Flags are suggestions. A person makes every decision.</li>
+            <li>No flags does not mean a reply is safe: rules can miss things.</li>
+            <li>Fictional data only. No real conversations or personal information.</li>
+            <li>Runs on this computer. The page has no server, database or AI connection.</li>
+          </ul>
+        </section>
+
+        <section class="about-card about-wide" aria-labelledby="about-who">
+          <h2 id="about-who">Who made it</h2>
+          <p>Built at natHacks 2026 for MCRC Health by a team of four. All rights reserved by MCRC Health. New here? <a href="#guide" data-guide-step="1">See the step-by-step guide with pictures</a>.</p>
+        </section>
+      </div>
     </div>
 
     <!-- 1. OVERVIEW: what to do, in three stages (like a review summary page) -->
@@ -534,7 +611,7 @@
         <button id="add-save" type="button">Add case and run checks</button>
       </div>
     </dialog>
-    <footer><a href="#guide">How to use TrustyTalker (visual guide)</a> · Fictional examples only, not live JARA replies or clinical advice. Runs on this computer: no server, database or AI connection.</footer>
+    <footer><a href="#guide">How to use TrustyTalker (visual guide)</a> · Runs on this computer: no server, database or AI connection.</footer>
   </main>
   <aside class="mascot" id="mascot" aria-label="Getting started helper" hidden>
     <div class="mascot-bubble" id="mascot-bubble" hidden>

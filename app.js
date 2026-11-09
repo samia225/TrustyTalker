@@ -2950,8 +2950,14 @@
       button.tabIndex = on ? 0 : -1;
     }
     for (const panel of document.querySelectorAll(".auth-panel")) panel.hidden = panel.dataset.tab !== tab;
+    // Links under the card offer the other two options, never the one already open.
+    for (const link of document.querySelectorAll("[data-tab-go]")) link.parentElement.hidden = link.dataset.tabGo === tab;
   }
   function wireWelcome() {
+    // "Create an account" / "Continue as a guest" links under the card switch tabs.
+    for (const link of document.querySelectorAll("[data-tab-go]")) {
+      link.addEventListener("click", () => { showAuthTab(link.dataset.tabGo); const tab = document.getElementById("tab-" + link.dataset.tabGo); if (tab) tab.focus(); });
+    }
 
     for (const button of document.querySelectorAll(".auth-tab")) {
       button.addEventListener("click", () => showAuthTab(button.dataset.tab));
@@ -3240,11 +3246,13 @@
     [null, () => "For each reply, read the conversation, choose Yes, No or Not sure, and write one sentence on why."],
     ['[data-nav="results"]', () => "When you're done, open Results and download your work as JSON or CSV."],
     ["#overview-add-case", () => "You can also browse every case and add your own fictional case here."],
+    [".nav-about", () => "Want to know what TrustyTalker checks and how well it works? Open About."],
     ["#view-overview .page-help-more a", () => "Want pictures? The step-by-step guide is here. Have fun reviewing!"]
   ];
   let tipIndex = 0;
   function mascotKey() { return "tt-mascot-seen:" + (currentAccount() ? currentAccount().id : "guest"); }
   function clearTarget() { for (const el of document.querySelectorAll(".mascot-target")) el.classList.remove("mascot-target"); }
+  function endSpotlight() { clearTarget(); document.body.classList.remove("tour-on", "tour-no-target"); }
   function paintTip() {
     const name = currentAccount() ? currentAccount().name.split(" ")[0] : "there";
     const [selector, text] = TIPS[tipIndex];
@@ -3255,7 +3263,11 @@
     next.textContent = tipIndex === TIPS.length - 1 ? "Done" : "Next";
     clearTarget();
     const target = selector && document.querySelector(selector);
-    if (target && target.offsetParent !== null) {
+    const lit = !!(target && target.offsetParent !== null);
+    // Spotlight (styles.css): dim the page; light up the part this tip is about.
+    document.body.classList.add("tour-on");
+    document.body.classList.toggle("tour-no-target", !lit);
+    if (lit) {
       target.classList.add("mascot-target");
       const r = target.getBoundingClientRect();
       if (r.top < 70 || r.bottom > window.innerHeight - 220) target.scrollIntoView({ block: "center" });
@@ -3265,14 +3277,14 @@
     const bubble = document.getElementById("mascot-bubble");
     bubble.hidden = !open;
     document.getElementById("mascot-bot").setAttribute("aria-expanded", String(open));
-    if (open) paintTip(); else clearTarget();
+    if (open) paintTip(); else endSpotlight();
   }
   function showMascot(viewName) {
     const box = document.getElementById("mascot");
     if (!box) return;
     const show = !!session && viewName === "overview";
     box.hidden = !show;
-    if (!show) { clearTarget(); return; }
+    if (!show) { endSpotlight(); return; }
     let seen = false;
     try { seen = localStorage.getItem(mascotKey()) === "1"; } catch (e) { seen = true; }
     if (!seen) { tipIndex = 0; openMascot(true); try { localStorage.setItem(mascotKey(), "1"); } catch (e) { /* storage off */ } }
@@ -3306,7 +3318,7 @@
   // Three pages share this one file: all cases, the conversation and the
   // findings. The address ends in #cases, #conversation or #findings, so the
   // browser's own Back button works and each page can be linked to.
-  const VIEWS = { welcome: "Welcome", guide: "Visual guide", overview: "Home", review: "Review", results: "Results", cases: "Browse cases", conversation: "Conversation", findings: "Case findings" };
+  const VIEWS = { welcome: "Welcome", guide: "Visual guide", about: "About", overview: "Home", review: "Review", results: "Results", cases: "Browse cases", conversation: "Conversation", findings: "Case findings" };
   const HERO = {
     overview: ["Review JARA's replies", "Automatic checks flag replies that may ignore what the person asked for. You decide whether each one is a real problem."],
     review: ["Review", "Read the highlighted reply in its conversation, then choose Yes, No or Not sure. Add one sentence on why."],
@@ -3315,7 +3327,8 @@
     conversation: ["Compare two conversations", "Two possible conversations for the same person. Flagged replies are marked in red."],
     findings: ["Findings in this case", "Every finding for the case you opened."],
     welcome: ["Welcome to TrustyTalker", "Check JARA's replies and decide whether each one is a real problem."],
-    guide: ["How to use TrustyTalker", "Step by step, with pictures. It takes about 5 minutes the first time."]
+    guide: ["How to use TrustyTalker", "Step by step, with pictures. It takes about 5 minutes the first time."],
+    about: ["About TrustyTalker", "What it is, how it works, and what it is not."]
   };
   let currentView = "overview";
   function viewFromHash() {
