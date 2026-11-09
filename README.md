@@ -36,6 +36,7 @@ node check_starter.js --exercise-sources
 node tests/test_state_tracker.js
 node tests/test_p1_checks.js
 node tests/test_validate.js
+node tests/run_regression.js      # past failures + reviewer exports in tests/regressions/*.json
 node tests/test_p2_checks.js
 node judge/test_run_judge.js
 ```
