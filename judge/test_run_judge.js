@@ -23,6 +23,66 @@ test("Settings are temperature 0 with JSON output", () => {
   assert.equal(judge.SETTINGS.output, "json");
 });
 
+// ---- Anonymization (engine/anonymize.js) --------------------------------
+const { createAnonymizer, anonymize } = require("../engine/anonymize.js");
+const PII = ["Sam Lee", "Priya", "403-555-0192", "sam.lee@example.com", "123 Maple Grove Road", "T2N 1N4", "12345-6789", "January 5, 1990"];
+const piiVariant = {
+  id: "TEST-PII-A",
+  turns: [
+    { id: "TEST-PII-A-U1", role: "user", text: "My name is Sam Lee. My sister Priya said to call 403-555-0192 or email sam.lee@example.com. I live at 123 Maple Grove Road, T2N 1N4. My PHN is 12345-6789, born January 5, 1990." },
+    { id: "TEST-PII-A-A1", role: "assistant", text: "Thanks Sam. I will call you at 403-555-0192 tomorrow. For a crisis, call 1-800-668-6868." }
+  ]
+};
+
+test("Anonymizer replaces names, phone, email, address, postal code, health number and date", () => {
+  const out = anonymize(piiVariant.turns[0].text);
+  for (const detail of PII) assert.ok(!out.includes(detail), "still contains " + detail + ": " + out);
+  for (const tag of ["[NAME_1]", "[NAME_2]", "[PHONE_1]", "[EMAIL_1]", "[ADDRESS_1]", "[POSTAL_CODE_1]", "[HEALTH_NUMBER_1]", "[DATE_1]"]) assert.ok(out.includes(tag), "missing " + tag);
+});
+
+test("Anonymizer: same detail gets the same placeholder, and restore() gives back the exact text", () => {
+  const a = createAnonymizer();
+  const t1 = a.scrub(piiVariant.turns[0].text), t2 = a.scrub(piiVariant.turns[1].text);
+  assert.ok(t2.includes("[PHONE_1]"), "the repeated phone number should reuse [PHONE_1]");
+  assert.equal(a.restore(t1), piiVariant.turns[0].text);
+  assert.equal(a.restore(t2), piiVariant.turns[1].text);
+});
+
+test("Anonymizer keeps public toll-free help lines and leaves ordinary text alone", () => {
+  assert.ok(anonymize("For a crisis, call 1-800-668-6868 or 811.").includes("1-800-668-6868"));
+  for (const t of ["My friend who drinks a lot.", "I had 3 drinks on 2 nights, 14 a week.", "Call me Tomorrow."]) assert.equal(anonymize(t), t);
+});
+
+test("Anonymizer changes nothing in the fictional cases (results are unaffected)", () => {
+  const { prompts } = quietly(() => judge.run([]));
+  const data = { cases: [] };
+  globalThis.window = globalThis;
+  require("../data.js");
+  data.cases = Object.values(globalThis).find(v => v && Array.isArray(v.cases)).cases;
+  assert.ok(prompts.every(p => Object.keys(p.anonymized).length === 0), "a prompt had details replaced");
+  let changed = 0;
+  for (const c of data.cases) for (const v of c.variants) for (const t of v.turns) if (anonymize(t.text) !== t.text) changed++;
+  assert.equal(changed, 0);
+});
+
+test("The prompt sent to the AI contains no personal details", () => {
+  const a = createAnonymizer();
+  const prompt = judge.buildPrompt({ scenario: { goal: "information", readiness: "unsure" }, variant: piiVariant, checkList: [{ id: "goal_alignment", label: "Goal" }],
+    criteria: { text: "criteria" }, examples: [], retrieved: [], fineExamples: [], anonymizer: a });
+  for (const detail of PII) assert.ok(!prompt.includes(detail), "prompt leaks " + detail);
+  assert.ok(prompt.includes("[PHONE_1]") && prompt.includes("1-800-668-6868"));
+});
+
+test("An AI quote that uses a placeholder is mapped back and passes the word-for-word check", () => {
+  const a = createAnonymizer();
+  piiVariant.turns.forEach(t => a.scrub(t.text));
+  const fromModel = { turn_id: "TEST-PII-A-A1", check: "goal_alignment", quote: "I will call you at [PHONE_1] tomorrow", explanation: "Uses [NAME_1]'s number without asking.", severity: "quality", fix_layer: "prompt" };
+  const restored = Object.assign({}, fromModel, { quote: a.restore(fromModel.quote), explanation: a.restore(fromModel.explanation) });
+  const { hint } = judge.validateJudgeFinding(restored, piiVariant, new Set(["goal_alignment"]), null);
+  assert.equal(hint.evidence_quote, "I will call you at 403-555-0192 tomorrow");
+  assert.equal(hint.confidence, "clear");
+});
+
 const asyncTests = [];
 function testAsync(name, fn) { asyncTests.push([name, fn]); }
 
@@ -65,6 +125,111 @@ testAsync("--live stops at our own token limit", async () => {
   assert.equal(calls, 2);
   assert.match(results.note, /Stopped early: token limit/);
   fs.rmSync(path.join(__dirname, results.source_file), { force: true });
+});
+
+// ---- Cases added in the page (local results file) and the watcher -----
+const ADDED_OUT = judge.ADDED_RESULTS_FILE;
+const addedTurns = [
+  { id: "CUSTOM-01-A-U1", role: "user", text: "I only want information. I am not ready to quit." },
+  { id: "CUSTOM-01-A-A1", role: "assistant", text: "You need to quit drinking completely." }
+];
+const addedCase = { id: "CUSTOM-01", title: "Added test", goal: "information", readiness: "not_ready", origin: "reviewer_added", added_at: "2026-11-08T21:00:00Z",
+  variants: [{ id: "CUSTOM-01-A", label: "Example A", turns: addedTurns }] };
+function fakeAddedFetch(counter) {
+  return async () => {
+    counter.calls++;
+    const content = JSON.stringify({ findings: [{ turn_id: "CUSTOM-01-A-A1", check: "goal_alignment", quote: "You need to quit drinking completely.",
+      explanation: "The person said they are not ready to quit.", severity: "critical", fix_layer: "prompt" }], unsure: [] });
+    return { ok: true, status: 200, json: async () => ({ model: "fake-model-1", usage: { total_tokens: 50 }, choices: [{ message: { content } }] }) };
+  };
+}
+async function withAddedFiles(fn) {
+  const keepAdded = fs.existsSync(ADDED_OUT) ? fs.readFileSync(ADDED_OUT, "utf8") : null;
+  const keepTeam = fs.readFileSync(OUT, "utf8");
+  try { await fn(keepTeam); }
+  finally {
+    if (keepAdded === null) fs.rmSync(ADDED_OUT, { force: true }); else fs.writeFileSync(ADDED_OUT, keepAdded);
+    fs.writeFileSync(OUT, keepTeam);
+  }
+}
+function removeRawOutputs(results) {
+  for (const run of (results && results.runs) || []) fs.rmSync(path.join(__dirname, "added_outputs", run.source_file), { force: true });
+}
+
+testAsync("--live --cases judges only added cases and writes them to judge_added_results.js, never to judge_results.js", async () => {
+  const similarity = require("../engine/similarity.js");
+  await withAddedFiles(async (teamBefore) => {
+    fs.rmSync(ADDED_OUT, { force: true });
+    const file = path.join(__dirname, "test_added_cases.json");
+    fs.writeFileSync(file, JSON.stringify([addedCase,
+      { id: "CASE-01", title: "Same ID as a built-in case", origin: "reviewer_added", variants: [{ id: "CASE-01-A", turns: addedTurns }] },
+      { id: "BAD", origin: "data_js", variants: [] }]));
+    const counter = { calls: 0 };
+    try {
+      const { results } = await quietlyAsync(() => judge.runLive(["--live", "--cases", file], { env: { OPENAI_API_KEY: "k" }, fetchImpl: fakeAddedFetch(counter) }));
+      assert.equal(counter.calls, 1, "only the one valid added conversation is sent");
+      const added = results.results.find(r => r.variant_id === "CUSTOM-01-A");
+      assert.ok(added && added.added_case && added.hints.length === 1);
+      assert.equal(added.fingerprint, similarity.fingerprint(addedTurns), "the page uses this to match the conversation");
+      assert.ok(!results.results.some(r => r.variant_id === "CASE-01-A"), "an added case may not use a built-in case's ID");
+      assert.equal(fs.readFileSync(OUT, "utf8"), teamBefore, "the team's judge_results.js is not changed");
+      const win = {}; new Function("window", fs.readFileSync(ADDED_OUT, "utf8"))(win);
+      assert.equal(win.JUDGE_ADDED_RESULTS.results[0].variant_id, "CUSTOM-01-A");
+      removeRawOutputs(results);
+    } finally { fs.rmSync(file, { force: true }); }
+  });
+});
+
+testAsync("Watcher: judges a downloaded file once, skips conversations already judged, and removes the file", async () => {
+  const watcher = require("./watch_added.js");
+  assert.ok(watcher.FILE_PATTERN.test("trustytalker-added-cases.json") && watcher.FILE_PATTERN.test("trustytalker-added-cases (2).json"));
+  assert.ok(!watcher.FILE_PATTERN.test("trustytalker-results-2026-11-08.json"));
+  await withAddedFiles(async () => {
+    fs.rmSync(ADDED_OUT, { force: true });
+    const dir = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "tt-watch-"));
+    const counter = { calls: 0 };
+    const opts = { env: { OPENAI_API_KEY: "k" }, fetchImpl: fakeAddedFetch(counter), log: () => {} };
+    try {
+      const file = path.join(dir, "trustytalker-added-cases.json");
+      fs.writeFileSync(file, JSON.stringify({ cases: [addedCase] }));
+      const first = await quietlyAsync(() => watcher.processFile(file, opts));
+      assert.deepEqual(first.judged, ["CUSTOM-01-A"]);
+      assert.equal(counter.calls, 1);
+      assert.ok(!fs.existsSync(file), "the processed download is removed");
+      fs.writeFileSync(file, JSON.stringify({ cases: [addedCase] }));
+      const second = await quietlyAsync(() => watcher.processFile(file, opts));
+      assert.deepEqual(second.judged, [], "the same conversation is not sent twice");
+      assert.equal(counter.calls, 1);
+      const changed = JSON.parse(JSON.stringify(addedCase));
+      changed.variants[0].turns[1].text = "Here are three options we can look at.";
+      fs.writeFileSync(file, JSON.stringify({ cases: [changed] }));
+      const third = await quietlyAsync(() => watcher.processFile(file, opts));
+      assert.deepEqual(third.judged, ["CUSTOM-01-A"], "a changed conversation is judged again");
+      const win = {}; new Function("window", fs.readFileSync(ADDED_OUT, "utf8"))(win);
+      removeRawOutputs(win.JUDGE_ADDED_RESULTS);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+});
+
+testAsync("--live --missing judges only conversations with no result yet and keeps every earlier result", async () => {
+  const before = fs.readFileSync(OUT, "utf8");
+  const win = {}; new Function("window", before)(win);
+  const prev = win.JUDGE_RESULTS;
+  const have = new Set(prev.results.map(r => r.variant_id));
+  const { prompts } = quietly(() => judge.run([]));
+  const missing = prompts.filter(p => !have.has(p.variant_id)).length;
+  let calls = 0;
+  const fakeFetch = async () => { calls++; return { ok: true, status: 200, json: async () => ({ model: "fake-model-1", usage: { total_tokens: 5 }, choices: [{ message: { content: "{\"findings\":[],\"unsure\":[]}" } }] }) }; };
+  try {
+    const { results } = await quietlyAsync(() => judge.runLive(["--live", "--missing"], { env: { OPENAI_API_KEY: "k" }, fetchImpl: fakeFetch }));
+    assert.equal(calls, missing, "only conversations without a result are sent");
+    assert.equal(results.results.length, prev.results.length + missing);
+    assert.deepEqual(results.results.slice(0, prev.results.length), prev.results, "earlier results are unchanged");
+    assert.equal(results.status, prev.status);
+    const run = results.extra_runs.slice(-1)[0];
+    assert.equal(run.variants.length, missing);
+    fs.rmSync(path.join(__dirname, run.source_file), { force: true });
+  } finally { fs.writeFileSync(OUT, before); }
 });
 
 async function quietlyAsync(fn) { const log = console.log; console.log = () => {}; try { return await fn(); } finally { console.log = log; } }

@@ -8,8 +8,9 @@
   <link rel="stylesheet" href="styles.css">
   <!-- Load order matters: data, engine, checks, answer key, UI modules, then app.js. -->
   <script src="data.js" defer></script>
-  <!-- <script src="cases_extra.js" defer></script> -->
+  <script src="cases_extra.js" defer></script>  <!-- Person 2: longer AI-drafted fictional cases (CASE-AI-01 to 07) -->
   <script src="engine/similarity.js" defer></script>
+  <script src="engine/anonymize.js" defer></script>
   <script src="engine/state_tracker.js" defer></script>
   <script src="student_checks.js" defer></script>
   <script src="checks/checks_common.js" defer></script>
@@ -19,6 +20,7 @@
   <!-- <script src="engine/validate.js" defer></script> -->
   <!-- Answer key for the agreement panel (read only, owned by Person 4). -->
   <script src="tests/expected.js" defer></script>
+  <script src="tests/expected_extra.js" defer></script>  <!-- draft labels for cases_extra.js -->
   <!-- <script src="benchmark.js" defer></script> -->  <!-- optional: used instead of the built-in score once it exists -->
   <script src="judge_results.js" defer></script>  <!-- made by judge/run_judge.js -->
   <script src="ui/timeline.js" defer></script>
@@ -65,6 +67,8 @@
     </div>
   </section>
   <main id="main-content" tabindex="-1">
+    <!-- Admin accounts only: unseen extreme safety alerts (app.js renderAdminAlerts) -->
+    <div id="admin-banner" class="admin-banner" role="status" hidden></div>
     <!-- WELCOME: log in, sign up or continue as a guest -->
     <div class="view" data-view="welcome" id="view-welcome" hidden>
       <section class="auth-card" aria-labelledby="auth-heading">
@@ -215,7 +219,7 @@
     <div class="view" data-view="guide" id="view-guide" hidden>
       <div class="view-bar"><a class="back-button" href="#overview">Back to Home</a></div>
       <section aria-labelledby="guide-main">
-        <h2 id="guide-main">Review replies in 7 steps</h2>
+        <h2 id="guide-main">Review replies in 11 steps</h2>
         <ol class="guide-steps">
         <li class="guide-step" id="guide-step-1">
           <div class="guide-text"><span class="guide-num" aria-hidden="true">1</span><h3>Sign in, sign up or continue as a guest</h3><p>Sign up once in 4 short steps (you must be 18 or older), then verify your email. Already have an account? Log in. Just looking? Continue as a guest.</p></div>
@@ -262,6 +266,10 @@
         <li class="guide-step" id="guide-step-10">
           <div class="guide-text"><span class="guide-num" aria-hidden="true">10</span><h3>Add your own case</h3><p>Press Add your own case. Type a fictional conversation, one line each, starting with P: for the person and J: for JARA.</p></div>
           <img src="guide/guide-9-add.png" alt="The Add your own case form with a title, the person's goal and readiness, and a box for the conversation." loading="lazy" width="640">
+        </li>
+        <li class="guide-step" id="guide-step-11">
+          <div class="guide-text"><span class="guide-num" aria-hidden="true">11</span><h3>See the AI judge's second opinion</h3><p>Look for the box marked ✨ AI JUDGE, on the Review page and under every JARA reply in a case. An AI model checked each reply ahead of time and says whether it agrees with the rule checks. Red: the AI also found a problem. Orange: the AI and the rules disagree, so look closely. Green: the AI found no problem. Read the AI's reason, then decide yourself: the AI only suggests.</p></div>
+          <img src="guide/guide-10-ai.png" alt="Two JARA replies, each with a box marked AI JUDGE. The first box is green: The AI found no problem with this reply. The second is orange: Disagrees: the AI flagged this reply but the rules did not (goal alignment). A reviewer should check. Below it is the AI's reason." loading="lazy" width="640">
         </li>
         </ol>
       </section>
@@ -335,6 +343,7 @@
             <button id="export-all" type="button">Download results</button>
           </span>
           <button id="export-regressions" class="secondary" type="button">Download regression tests</button>
+          <button id="demo-reviews" class="secondary" type="button" title="Six fictional reviewers answer and rate some findings. Marked as demo in every export; one click removes them.">Load demo reviews (fictional)</button>
           <input id="import-file" type="file" accept="application/json,.json" multiple hidden>
         </div>
       </section>
@@ -342,6 +351,7 @@
       <p id="import-help" class="visually-hidden">Loads one or more files: results downloaded earlier (decisions are combined) or a JARA feedback case. The files stay on this computer.</p>
       <p id="import-status" class="import-status" role="status" aria-live="polite"></p>
       <div id="result-tiles" class="result-tiles"></div>
+      <section id="admin-alerts" class="admin-alerts" aria-labelledby="admin-alerts-heading"></section>
       <section aria-labelledby="decisions-heading">
         <h2 id="decisions-heading">Every finding</h2>
         <div id="decision-table"></div>
@@ -471,6 +481,12 @@
       <div id="jara-feedback" class="jara-feedback" hidden>
         <label for="jara-comment">What was wrong with this reply? (optional)</label>
         <textarea id="jara-comment" rows="2" placeholder="For example: I said I only want to cut down."></textarea>
+        <div class="consent-box">
+          <input type="checkbox" id="jara-consent" aria-describedby="jara-consent-more">
+          <label for="jara-consent"><strong>I agree to send this conversation to the JARA quality team (TrustyTalker)</strong> so people can check JARA's reply and improve it.</label>
+          <p id="jara-consent-more" class="muted small">Before it is sent, names, phone numbers, emails, addresses, dates and health card numbers are replaced with placeholders such as [PHONE_1]. People on the team and an AI model may review the anonymized conversation. Saying no is fine: JARA keeps helping you the same way, and nothing is sent.</p>
+          <p id="jara-consent-error" class="consent-error" role="alert"></p>
+        </div>
         <div class="dialog-actions">
           <button id="jara-cancel" class="secondary" type="button">Cancel</button>
           <button id="jara-send" type="button">Send to TrustyTalker</button>
@@ -487,7 +503,7 @@
         <h2 id="add-case-title">Add your own case</h2>
         <button id="add-case-close" class="dialog-close secondary" type="button" aria-label="Close">Close</button>
       </div>
-      <p id="add-case-help" class="muted">Type a fictional conversation, one turn per line. Start each line with <strong>P:</strong> for the person or <strong>J:</strong> for JARA. The case stays in this page only; it is not saved to data.js. Never paste real conversations.</p>
+      <p id="add-case-help" class="muted">Type a fictional conversation, one turn per line. Start each line with <strong>P:</strong> for the person or <strong>J:</strong> for JARA. The case is kept in this browser with the date and time you added it (it is not saved to data.js). Never paste real conversations.</p>
       <div class="field">
         <label for="add-title">Case title</label>
         <input id="add-title" type="text" autocomplete="off" placeholder="For example: Asked for options, got a quit plan">
@@ -511,9 +527,10 @@
         <textarea id="add-b" rows="4" aria-describedby="add-format" placeholder="P: I only want to know my options.&#10;J: Here are three options we can look at."></textarea>
       </div>
       <p id="add-format" class="muted small">Format: one turn per line, starting with P: or J:.</p>
+      <label class="check auto-judge"><input type="checkbox" id="add-auto-judge" checked> <span>Send to the AI judge automatically (downloads the case for <code>node judge/watch_added.js</code>)</span></label>
       <p id="add-error" class="form-error" role="alert"></p>
       <div class="dialog-actions">
-        <button id="add-cancel" class="secondary" type="button">Cancel</button>
+        <button id="add-cancel" class="secondary" type="button">Go to all cases</button>
         <button id="add-save" type="button">Add case and run checks</button>
       </div>
     </dialog>

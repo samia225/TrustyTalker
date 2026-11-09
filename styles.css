@@ -77,6 +77,8 @@
 /* 2. Base ------------------------------------------------------------------ */
 * { box-sizing: border-box; }
 html, body { overflow-x: hidden; }
+/* clip hides sideways overflow like hidden, but does not stop position: sticky from working */
+@supports (overflow: clip) { html, body { overflow-x: clip; } }
 body { margin: 0; background: var(--bg); color: var(--ink); }
 ::selection { background: var(--blue-wash); color: var(--ink); }
 h1, h2, h3 { color: var(--ink); line-height: 1.25; letter-spacing: 0; }
@@ -209,6 +211,11 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--b
 .grid-table tr.row-disagree td { background: var(--unsure-wash); }
 .grid-table tr.row-error td { background: var(--flag-wash); }
 .case-open { min-height: 30px; font-size: .9rem; white-space: nowrap; }
+.case-title-cell { min-width: 170px; font-weight: 600; }
+.case-when-cell { min-width: 130px; }
+.case-when-cell time { display: block; white-space: nowrap; font-size: .85rem; }
+.case-when { display: block; margin-top: 2px; color: var(--muted); font-size: .74rem; }
+.case-remove { display: block; margin-top: 4px; font-size: .78rem; color: var(--flag); }
 .case-tag { display: inline-block; margin-left: 8px; padding: 0 7px; border-radius: 999px; background: var(--unsure-wash); color: var(--unsure-ink); font-size: .7rem; font-weight: 700; }
 .case-list-empty { margin: 10px 0 0; }
 .case-list-empty[hidden] { display: none; }
@@ -291,6 +298,43 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--b
 .ai-tag-check { border-left-color: var(--unsure); background: var(--unsure-wash); }
 .ai-tag-none { border-left-color: var(--line); color: var(--muted); }
 .ai-summary { font-weight: 700; }
+/* Consent before a JARA conversation is sent to TrustyTalker (thumbs down). */
+.consent-box { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; margin: 12px 0 4px; padding: 10px 12px; border: 1px solid var(--blue-line); border-radius: var(--radius-md); background: var(--blue-wash); }
+.consent-box input { width: 18px; height: 18px; margin-top: 2px; }
+.consent-box p { grid-column: 2; margin: 0; }
+.consent-error { color: var(--flag); font-weight: 700; }
+.consent-error:empty { display: none; }
+/* Two-reviewer rule (Review panel and Results table). */
+.two-review { display: grid; gap: 4px; margin-top: 10px; padding: 8px 12px; border: 1px solid var(--line); border-left-width: 5px; border-radius: var(--radius-md); background: var(--panel-alt); font-size: .85rem; }
+.two-review-note { color: var(--muted); }
+.two-review-head { display: flex; align-items: center; gap: 8px; }
+.admin-only-tag { margin-left: auto; padding: 0 7px; border-radius: 999px; background: var(--navy-soft); color: var(--on-navy); font-size: .68rem; font-weight: 700; }
+/* ✅ / ⏳ minimum-reviews badge with a tooltip on hover and keyboard focus. */
+.review-badge { position: relative; display: inline-block; font-size: 1rem; line-height: 1; cursor: help; border-radius: 6px; }
+.review-badge:focus-visible { outline: none; box-shadow: var(--focus); }
+.review-badge::after { content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); z-index: 20; padding: 5px 9px; border-radius: 6px; background: var(--ink); color: var(--panel); font-size: .75rem; font-weight: 600; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .12s; }
+.review-badge:hover::after, .review-badge:focus-visible::after { opacity: 1; }
+.ai-tag-action { justify-self: start; margin-top: 4px; min-height: 34px; padding: 4px 12px; font-size: .8rem; }
+.add-more-dialog { width: min(460px, calc(100vw - 32px)); }
+.add-more-dialog h2 { margin-top: 0; }
+.two-review-list { margin: 2px 0 0; padding-left: 18px; }
+.two-review-not_reviewed, .two-review-needs_second_reviewer { border-left-color: var(--blue); }
+.two-review-agreed_problem { border-left-color: var(--flag); }
+.two-review-agreed_fine { border-left-color: var(--clean); }
+.two-review-reviewers_disagree { border-left-color: var(--unsure); background: var(--unsure-wash); }
+.consensus-pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .72rem; font-weight: 700; background: var(--panel-alt); color: var(--muted); border: 1px solid var(--line); }
+.consensus-needs_second_reviewer { background: var(--blue-wash); color: var(--blue-text); border-color: var(--blue-line); }
+.consensus-agreed_problem { background: var(--flag-wash); color: var(--flag); border-color: var(--flag-line); }
+.consensus-agreed_fine { background: var(--clean-wash); color: var(--clean); border-color: var(--clean-line); }
+.consensus-reviewers_disagree { background: var(--unsure-wash); color: var(--unsure-ink); border-color: var(--unsure-line); }
+/* Admin alerts: extreme safety problems. */
+.admin-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 12px auto 0; max-width: 1100px; padding: 10px 16px; border: 1px solid var(--flag-line); border-left-width: 6px; border-left-color: var(--flag); border-radius: var(--radius-md); background: var(--flag-wash); color: var(--ink); }
+.admin-banner[hidden] { display: none; }
+.admin-banner strong { color: var(--flag); }
+.admin-banner-open { margin-left: auto; }
+.admin-alerts:not(:empty) { margin: 24px 0; padding: 16px; border: 1px solid var(--flag-line); border-top: 4px solid var(--flag); border-radius: var(--radius-lg); background: var(--panel); }
+.admin-alerts h2 { margin-top: 0; }
+.grid-table tr.row-alert td { background: var(--flag-wash); }
 .decision-confirmed { color: var(--flag); font-weight: 700; }
 .decision-rejected { color: var(--clean); font-weight: 700; }
 .decision-unsure { color: var(--unsure-ink); font-weight: 700; }
@@ -546,7 +590,8 @@ main:focus { outline: none; }
 .rv-convo { min-width: 0; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel-alt); }
 .rv-convo-head h2 { margin: 0; font-size: 1.15rem; }
 .rv-convo-head p { margin: 2px 0 14px; font-size: .86rem; }
-.rv-turns { padding-top: 4px; }
+.rv-turns { position: relative; max-height: 60vh; overflow-y: auto; padding: 4px 6px 4px 0; overscroll-behavior: contain; }
+.rv-turns:focus-visible { outline: none; box-shadow: var(--focus); border-radius: var(--radius-md); }
 .rv-turns .turn-role { display: block; margin-bottom: 2px; color: var(--muted); font-size: .76rem; }
 .rv-turns .turn.user .turn-role { color: #f2f6ff; }
 .rv-turns .rv-context.assistant { opacity: .92; }
@@ -927,3 +972,46 @@ textarea[aria-invalid="true"] { border-color: var(--flag); box-shadow: 0 0 0 3px
 .state-list dd { margin: 0; font-size: .84rem; }
 .state-note { display: block; margin-top: 6px; color: var(--muted); font-size: .74rem; }
 
+.auto-judge { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; font-size: .85rem; }
+.auto-judge input { margin-top: 3px; }
+/* Reviewer ratings: one slider per item (Tyler's WHO-based items). */
+.rv-ratings { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel-alt); }
+.rv-ratings > summary { font-weight: 700; cursor: pointer; }
+.rv-ratings-count { color: var(--muted); font-weight: 500; font-size: .85rem; }
+.rating-row { margin: 10px 0 0; padding: 10px 0 0; border: 0; border-top: 1px solid var(--line-soft); }
+.rating-row legend { padding: 0; font-weight: 700; font-size: .85rem; }
+.rating-statement { display: block; margin: 2px 0 6px; font-size: .85rem; }
+.rating-slider { width: 100%; accent-color: var(--blue); cursor: grab; }
+.rating-slider:active { cursor: grabbing; }
+.rating-row.is-unrated .rating-slider { opacity: .45; }
+.rating-ticks { display: grid; grid-template-columns: repeat(5, 1fr); font-size: .68rem; color: var(--muted); text-align: center; }
+.rating-ticks span:first-child { text-align: left; }
+.rating-ticks span:last-child { text-align: right; }
+.rating-value { display: block; margin-top: 2px; font-size: .8rem; font-weight: 700; color: var(--blue-text); }
+.rating-row.is-unrated .rating-value { color: var(--muted); font-weight: 500; }
+.rating-na { display: flex; gap: 6px; align-items: center; margin-top: 4px; font-size: .78rem; color: var(--muted); }
+
+/* Others' scores pop-up */
+.rv-ratings-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 2px; }
+.rv-others-open { min-height: 34px; padding: 4px 12px; font-size: .82rem; }
+.rv-others-why:empty { display: none; }
+.others-dialog { width: min(560px, calc(100vw - 32px)); }
+.others-dialog h2 { margin-top: 0; }
+.others-bar { display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: var(--line-soft); overflow: hidden; }
+.others-bar-fill { display: block; height: 100%; background: var(--blue); }
+.others-w2 { width: 20%; }
+.others-w3 { width: 30%; }
+.others-w4 { width: 40%; }
+.others-w5 { width: 50%; }
+.others-w6 { width: 60%; }
+.others-w7 { width: 70%; }
+.others-w8 { width: 80%; }
+.others-w9 { width: 90%; }
+.others-w10 { width: 100%; }
+/* Review page: the conversation stays on screen while the reviewer scrolls the decision
+   panel (reason, ratings) on the right. Wide screens only; stacked layout is unchanged. */
+@media (min-width: 981px) {
+  .rv-grid:not(.rv-grid-even) > .rv-convo { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; overscroll-behavior: contain; }
+  .rv-grid:not(.rv-grid-even) > .rv-panel { position: static; }
+  .rv-grid:not(.rv-grid-even) > .rv-convo .rv-turns { max-height: none; overflow: visible; }
+}
