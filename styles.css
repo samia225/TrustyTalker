@@ -970,3 +970,5 @@ textarea[aria-invalid="true"] { border-color: var(--flag); box-shadow: 0 0 0 3px
 .state-list dd { margin: 0; font-size: .84rem; }
 .state-note { display: block; margin-top: 6px; color: var(--muted); font-size: .74rem; }
 
+.auto-judge { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; font-size: .85rem; }
+.auto-judge input { margin-top: 3px; }

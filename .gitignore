@@ -13,3 +13,7 @@ CLAUDE.md
 PLAN.md
 TEAM_TASKS.md
 CLAUDE.local.md
+
+# Local AI judge results for cases added in the page (Person 2)
+judge_added_results.js
+judge/added_outputs/

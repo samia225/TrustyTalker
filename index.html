@@ -482,7 +482,7 @@
         <div class="consent-box">
           <input type="checkbox" id="jara-consent" aria-describedby="jara-consent-more">
           <label for="jara-consent"><strong>I agree to send this conversation to the JARA quality team (TrustyTalker)</strong> so people can check JARA's reply and improve it.</label>
-          <p id="jara-consent-more" class="muted small">Before it is sent, names, phone numbers, emails, addresses, dates and health card numbers are replaced with placeholders such as [PHONE_1]. Saying no is fine: JARA keeps helping you the same way, and nothing is sent.</p>
+          <p id="jara-consent-more" class="muted small">Before it is sent, names, phone numbers, emails, addresses, dates and health card numbers are replaced with placeholders such as [PHONE_1]. People on the team and an AI model may review the anonymized conversation. Saying no is fine: JARA keeps helping you the same way, and nothing is sent.</p>
           <p id="jara-consent-error" class="consent-error" role="alert"></p>
         </div>
         <div class="dialog-actions">
@@ -525,6 +525,7 @@
         <textarea id="add-b" rows="4" aria-describedby="add-format" placeholder="P: I only want to know my options.&#10;J: Here are three options we can look at."></textarea>
       </div>
       <p id="add-format" class="muted small">Format: one turn per line, starting with P: or J:.</p>
+      <label class="check auto-judge"><input type="checkbox" id="add-auto-judge" checked> <span>Send to the AI judge automatically (downloads the case for <code>node judge/watch_added.js</code>)</span></label>
       <p id="add-error" class="form-error" role="alert"></p>
       <div class="dialog-actions">
         <button id="add-cancel" class="secondary" type="button">Go to all cases</button>

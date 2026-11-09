@@ -1133,7 +1133,49 @@
   // Shown only when Fatima's judge_results.js is loaded (written by judge/run_judge.js
   // as window.JUDGE_RESULTS). Accepted shapes: { results: [{ case_id, variant_id, hints }] },
   // the same as a plain array, or a flat array of hints that each carry variant_id.
-  function judgeData() { return window.JUDGE_RESULTS || window.JARAJudgeResults || null; }
+  // Team results (judge_results.js) plus, when present, the local results for cases added in
+  // this page (judge_added_results.js, written by judge/watch_added.js or run_judge.js --cases).
+  function judgeData() {
+    const team = window.JUDGE_RESULTS || window.JARAJudgeResults || null;
+    const added = window.JUDGE_ADDED_RESULTS;
+    if (!added || !Array.isArray(added.results) || !added.results.length) return team;
+    if (!team) return added;
+    if (Array.isArray(team)) return team.concat(added.results);
+    return Object.assign({}, team, { results: (team.results || []).concat(added.results) });
+  }
+  // Re-reads judge_added_results.js (a local file next to index.html; no network) every few
+  // seconds while an added conversation has no AI result yet, so the AI's opinion appears by itself.
+  let addedResultsStamp = null, addedPollTimer = null;
+  function loadAddedResults(done) {
+    const s = document.createElement("script");
+    s.src = "judge_added_results.js?t=" + Date.now();
+    s.onload = s.onerror = () => { s.remove(); if (done) done(); };
+    document.head.append(s);
+  }
+  function waitingForAi() {
+    return data.cases.some(c => ADDED_ORIGINS.includes(c.origin) && c.variants.some(v => !judgeCovered(v.id)));
+  }
+  function pollAddedResults() {
+    clearTimeout(addedPollTimer);
+    if (!waitingForAi() && addedResultsStamp !== null) return;
+    loadAddedResults(() => {
+      const r = window.JUDGE_ADDED_RESULTS;
+      const stamp = r && r.generated_at ? r.generated_at : "";
+      if (stamp !== addedResultsStamp) { addedResultsStamp = stamp; refreshAiViews(); }
+      if (waitingForAi()) addedPollTimer = setTimeout(pollAddedResults, 4000);
+    });
+  }
+  // Swap in fresh AI boxes without re-drawing the page (a reviewer may be typing a reason).
+  function refreshAiViews() {
+    for (const tag of document.querySelectorAll(".rv-panel .ai-tag[data-variant]")) {
+      const fresh = aiVerdictTag(tag.dataset.variant, tag.dataset.turn, true, true);
+      if (fresh) tag.replaceWith(fresh);
+    }
+    const scenario = selectedCase();
+    if (report && scenario && report.case_id === scenario.id) renderJudgeComparison(scenario, report.results);
+  }
+  // Remembered choice: download each added case for the AI judge watcher automatically.
+  function autoJudgeOn() { try { return localStorage.getItem("tt-auto-judge") !== "off"; } catch (error) { return true; } }
   function judgeHintsFor(variantId) {
     const raw = judgeData();
     if (!raw) return null;
@@ -1208,8 +1250,8 @@
     const raw = judgeData();
     if (!raw || (!Array.isArray(raw) && !Array.isArray(raw.results))) return null;
     if (!judgeCovered(variantId)) {
-      if (isAddedVariant(variantId)) return { kind: "none", title: "Not run yet: you added this case after the last AI run.", added: true,
-        detail: "The AI cannot run inside this page (it works offline). Press Download for the AI judge, then in the project folder run: node judge/run_judge.js --live --cases ~/Downloads/trustytalker-added-cases.json and refresh this page." };
+      if (isAddedVariant(variantId)) return { kind: "none", title: "Waiting for the AI judge\u2026 this box updates by itself.", added: true,
+        detail: "The AI runs outside this page (the page works offline). Keep the watcher running in a terminal: node judge/watch_added.js. It picks up the case this page downloaded and judges it. Nothing happening? Press Download for the AI judge to send it again." };
       return { kind: "none", title: "Not run on this conversation (it was added after the AI run).", detail: "" };
     }
     const judge = (judgeHintsFor(variantId) || []).filter(h => h.turn_id === turnId);
@@ -1225,6 +1267,8 @@
     const v = aiVerdict(variantId, turnId, ruleFlagged);
     if (!v) return null;
     const tag = aiTag(v.kind, v.title, v.detail);
+    tag.dataset.variant = variantId;
+    tag.dataset.turn = turnId;
     if (withAction && v.added) {
       const get = element("button", "Download for the AI judge", "secondary ai-tag-action");
       get.type = "button";
@@ -2124,6 +2168,8 @@
     const item = buildQueue().find(i => i.scenario.id === scenario.id && i.hint.check_id === "user_feedback");
     demoSentKey = item ? item.key : null;
     document.getElementById("jara-feedback").hidden = true;
+    if (autoJudgeOn()) downloadAddedForJudge();
+    pollAddedResults();
     const removed = scenario.anonymization ? scenario.anonymization.details_replaced : 0;
     document.getElementById("jara-status").textContent = "Sent with your consent. " +
       (removed ? removed + " personal detail" + (removed === 1 ? " was" : "s were") + " replaced with placeholders first. " : "No personal details were found to remove. ") +
@@ -3196,6 +3242,8 @@
     addOpener = document.activeElement;
     const goals = Array.from(new Set(data.cases.map(c => c.goal))).filter(Boolean);
     const readiness = Array.from(new Set(data.cases.map(c => c.readiness))).filter(Boolean);
+    const auto = document.getElementById("add-auto-judge");
+    if (auto) auto.checked = autoJudgeOn();
     fillChoices("add-goal", goals, "information");
     fillChoices("add-readiness", readiness, readiness[0]);
     addError.textContent = "";
@@ -3257,6 +3305,10 @@
       applyCaseFilter();
       if (dialog.close) dialog.close(); else dialog.removeAttribute("open");
       ["add-title", "add-a", "add-b"].forEach(f => { document.getElementById(f).value = ""; });
+      const auto = document.getElementById("add-auto-judge");
+      if (auto) { try { localStorage.setItem("tt-auto-judge", auto.checked ? "on" : "off"); } catch (error) { /* storage off */ } }
+      if (!auto || auto.checked) downloadAddedForJudge();
+      pollAddedResults();
       askAddMore(scenario);
     } catch (error) {
       addError.textContent = error.message;
@@ -3274,6 +3326,7 @@
     runButton.disabled = true;
     return;
   }
+  if (data.cases.some(c => ADDED_ORIGINS.includes(c.origin))) setTimeout(pollAddedResults, 0);
   for (const scenario of data.cases) {
     const option = element("option", scenario.id + " / " + scenario.title);
     option.value = scenario.id;
