@@ -447,7 +447,7 @@
   // Grammarly (click the marked words to open the explanation) and review
   // queues in AI evaluation tools (progress counter, keyboard shortcuts).
   function clearPrototype() {
-    document.querySelectorAll(".turn-comments").forEach(node => node.remove());
+    document.querySelectorAll(".turn-comments, .ai-tag").forEach(node => node.remove());
     findingCards = [];
     turnComments = new Map();
     activeIndex = -1;
@@ -859,7 +859,61 @@
   function describeChecks(hints) {
     return hints.length ? Array.from(new Set(hints.map(h => pretty(h.check_id)))).join(", ") : "No flag";
   }
+  // True when the judge run covered this variant (so "no flag" really means no flag,
+  // not "the AI never saw this conversation").
+  function judgeCovered(variantId) {
+    const raw = judgeData();
+    const list = Array.isArray(raw) ? raw : raw && Array.isArray(raw.results) ? raw.results : [];
+    return list.some(item => item && item.variant_id === variantId);
+  }
+  function judgeUnsureFor(variantId, turnId) {
+    const raw = judgeData();
+    const list = raw && Array.isArray(raw.results) ? raw.results : [];
+    const item = list.find(r => r && r.variant_id === variantId);
+    return item && Array.isArray(item.unsure) ? item.unsure.find(u => u.turn_id === turnId) : null;
+  }
+  // One plain-language tag under each JARA reply: what the AI judge thought, and
+  // whether a reviewer should look because the rules and the AI disagree.
+  function aiTag(kind, title, detail) {
+    const tag = element("div", undefined, "ai-tag ai-tag-" + kind);
+    tag.setAttribute("role", "note");
+    tag.setAttribute("aria-label", "AI judge opinion");
+    const head = element("div", undefined, "ai-tag-head");
+    head.append(element("span", "AI JUDGE", "ai-badge"),
+      element("span", "Second opinion from an AI model" + (judgeModelName() ? " (" + judgeModelName() + ")" : "") + ". It only suggests; a person decides.", "ai-tag-who"));
+    tag.append(head, element("strong", title, "ai-tag-title"));
+    if (detail) {
+      const why = element("span", undefined, "ai-tag-detail");
+      why.append(element("strong", "AI's reason: "), document.createTextNode(detail));
+      tag.append(why);
+    }
+    return tag;
+  }
+  function judgeModelName() {
+    const raw = judgeData();
+    return raw && raw.settings && raw.settings.model ? String(raw.settings.model).replace(/-\d{4}-\d{2}-\d{2}$/, "") : "";
+  }
+  // What the AI judge thought about one JARA reply, in plain words. Shared by the
+  // conversation page and the Review page. Returns null when no judge results are loaded.
+  function aiVerdict(variantId, turnId, ruleFlagged) {
+    const raw = judgeData();
+    if (!raw || (!Array.isArray(raw) && !Array.isArray(raw.results))) return null;
+    if (!judgeCovered(variantId)) return { kind: "none", title: "Not run on this conversation (it was added after the AI run).", detail: "" };
+    const judge = (judgeHintsFor(variantId) || []).filter(h => h.turn_id === turnId);
+    const unsure = judgeUnsureFor(variantId, turnId);
+    const reason = judge.map(h => h.reason).filter(Boolean).join(" ");
+    if (judge.length && ruleFlagged) return { kind: "agree", title: "Agrees: the AI also flagged this reply (" + describeChecks(judge) + ").", detail: reason };
+    if (judge.length) return { kind: "check", title: "Disagrees: the AI flagged this reply but the rules did not (" + describeChecks(judge) + "). A reviewer should check.", detail: reason };
+    if (ruleFlagged) return { kind: "check", title: "Disagrees: the AI found no problem, but the rules flagged this reply. A reviewer should check.", detail: unsure ? unsure.note : "" };
+    if (unsure) return { kind: "check", title: "Unsure: the AI could not decide about this reply. A reviewer should check.", detail: unsure.note };
+    return { kind: "ok", title: "The AI found no problem with this reply.", detail: "" };
+  }
+  function aiVerdictTag(variantId, turnId, ruleFlagged) {
+    const v = aiVerdict(variantId, turnId, ruleFlagged);
+    return v ? aiTag(v.kind, v.title, v.detail) : null;
+  }
   function renderJudgeComparison(scenario, results) {
+    document.querySelectorAll(".ai-tag").forEach(node => node.remove());
     const box = document.getElementById("judge-compare");
     if (!box) return;
     box.replaceChildren();
@@ -869,32 +923,27 @@
       if (judgeStatus && judgeStatus.status) box.append(element("p", "AI judge: " + (judgeStatus.note || pretty(judgeStatus.status)), "muted judge-note"));
       return;
     }
-    box.append(element("h2", "Rules vs AI judge"),
-      element("p", "Each assistant reply, with what the rule checks and the AI judge flagged. The judge only suggests; a reviewer decides.", "muted"));
-    if (raw.status && raw.status !== "judge_run") box.append(element("p", "Test data only: " + (raw.note || "not a real judge run."), "muted judge-note"));
-    const table = element("table", undefined, "grid-table");
-    const head = element("tr");
-    for (const h of ["Turn", "Rule checks", "AI judge", "Agree?"]) { const th = element("th", h); th.scope = "col"; head.append(th); }
-    table.append(element("thead"), element("tbody"));
-    table.tHead.append(head);
+    let replies = 0, agree = 0, check = 0, notRun = 0;
     for (const variant of scenario.variants) {
       const ruleHints = (results.find(r => r.variant_id === variant.id) || { hints: [] }).hints;
-      const judgeHints = judgeHintsFor(variant.id) || [];
       for (const turn of variant.turns) {
         if (turn.role !== "assistant") continue;
-        const rules = ruleHints.filter(h => h.turn_id === turn.id);
-        const judge = judgeHints.filter(h => h.turn_id === turn.id);
-        const agree = (rules.length > 0) === (judge.length > 0);
-        const tr = element("tr", undefined, agree ? "" : "row-disagree");
-        const verdict = element("td");
-        verdict.append(element("span", agree ? "Agree" : "Disagree", "verdict verdict-" + (agree ? "agree" : "other")));
-        tr.append(element("td", turn.id), element("td", describeChecks(rules)), element("td", describeChecks(judge)), verdict);
-        table.tBodies[0].append(tr);
+        const node = turnNode(turn.id);
+        replies += 1;
+        const v = aiVerdict(variant.id, turn.id, ruleHints.some(h => h.turn_id === turn.id));
+        if (v.kind === "none") notRun += 1; else if (v.kind === "check") check += 1; else agree += 1;
+        if (node) node.append(aiTag(v.kind, v.title, v.detail));
       }
     }
-    const scroller = element("div", undefined, "grid-scroll");
-    scroller.append(table);
-    box.append(scroller);
+    const judged = replies - notRun;
+    box.append(element("h2", "AI judge"));
+    if (raw.status && raw.status !== "judge_run") box.append(element("p", "Test data only: " + (raw.note || "not a real judge run."), "muted judge-note"));
+    const summary = judged
+      ? "The AI judge and the rules agree on " + agree + " of " + judged + " JARA replies. " +
+        (check ? check + (check === 1 ? " reply needs" : " replies need") + " a reviewer to check (orange AI JUDGE boxes under the replies)." : "Nothing needs an extra check.")
+      : "The AI judge has not been run on this case yet.";
+    box.append(element("p", summary, "ai-summary"),
+      element("p", "The AI's tag is shown under each JARA reply in the conversation. The AI only suggests; a reviewer decides.", "muted"));
   }
 
   // Builds the export. Every original field is kept as it was; each finding only
@@ -1853,6 +1902,9 @@
     const why = element("details", undefined, "rv-why");
     why.append(element("summary", "Why the check flagged it"), element("p", hint.reason));
     panel.append(why);
+    // Second opinion from the AI judge on this same reply (only when judge_results.js is loaded).
+    const ai = aiVerdictTag(item.variant.id, hint.turn_id, true);
+    if (ai) panel.append(ai);
     if (hint.check_id === "source_support") {
       const passage = sourcePassageBox(item.scenario, item.variant.id, hint.turn_id);
       if (passage) panel.append(passage);

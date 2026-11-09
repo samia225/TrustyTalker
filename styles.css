@@ -279,6 +279,18 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--b
 .turn-comment-go { margin-left: auto; color: var(--blue-text); font-weight: 700; }
 .turn-comment-go::after { content: " \2192"; }
 .turn-comment-decision { color: var(--muted); }
+/* AI judge tag under each JARA reply (app.js renderJudgeComparison). */
+.ai-tag { display: grid; gap: 4px; margin-top: 10px; padding: 8px 12px; border: 1px solid var(--line); border-left-width: 5px; border-radius: var(--radius-md); background: var(--panel); color: var(--ink); font-size: .85rem; }
+.ai-tag-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.ai-badge { display: inline-block; padding: 1px 9px; border-radius: 999px; background: var(--navy-soft); color: var(--on-navy); font-size: .72rem; font-weight: 800; letter-spacing: .06em; }
+.ai-badge::before { content: "\2728  "; }
+.ai-tag-who { color: var(--muted); font-size: .75rem; }
+.ai-tag-detail { color: var(--muted); }
+.ai-tag-ok { border-left-color: var(--clean); background: var(--clean-wash); }
+.ai-tag-agree { border-left-color: var(--flag); background: var(--flag-wash); }
+.ai-tag-check { border-left-color: var(--unsure); background: var(--unsure-wash); }
+.ai-tag-none { border-left-color: var(--line); color: var(--muted); }
+.ai-summary { font-weight: 700; }
 .decision-confirmed { color: var(--flag); font-weight: 700; }
 .decision-rejected { color: var(--clean); font-weight: 700; }
 .decision-unsure { color: var(--unsure-ink); font-weight: 700; }
