@@ -634,12 +634,15 @@
     Promise.all(list.map(file => file.text().then(text => {
       try { return JSON.parse(text); } catch (error) { throw new Error(file.name + " is not valid JSON."); }
     }))).then(parsedFiles => {
-      let restored = 0, skipped = 0, added = 0, lastCase = null;
+      let restored = 0, skipped = 0, added = 0, noConsent = 0, lastCase = null;
       const objects = [];
       for (const parsed of parsedFiles) for (const one of (Array.isArray(parsed) ? parsed : [parsed])) objects.push(one);
       // Feedback cases first, so findings files that mention them can be matched.
       for (const one of objects) {
-        if (one && one.schema_version === "trustytalker-case-1") { if (addFeedbackCase(one)) added += 1; else skipped += 1; }
+        if (one && one.schema_version === "trustytalker-case-1") {
+          const result = addFeedbackCase(one);
+          if (result === true) added += 1; else if (result === "no_consent") noConsent += 1; else skipped += 1;
+        }
       }
       for (const one of objects) {
         if (!one || one.schema_version === "trustytalker-case-1") continue;
@@ -678,6 +681,7 @@
       if (restored) parts.push("Restored " + restored + " decision" + (restored === 1 ? "" : "s") + ".");
       if (added) parts.push("Added " + added + " JARA feedback case" + (added === 1 ? "" : "s") + " to the review.");
       if (skipped) parts.push(skipped + " item" + (skipped === 1 ? "" : "s") + " could not be matched and were left out.");
+      if (noConsent) parts.push(noConsent + " JARA feedback case" + (noConsent === 1 ? " was" : "s were") + " NOT added: the person's consent is not recorded in the file.");
       say(parts.join(" ") || "Nothing to load in this file.", false);
       if (added && !restored) { const first = buildQueue().find(i => i.scenario.origin === "jara_feedback" && !decided(i.key)); openReviewAt(first ? first.key : null); }
       else if (restored) navigate("results");
@@ -697,15 +701,20 @@
     while (data.cases.some(c => c.id === "FEEDBACK-" + String(n).padStart(2, "0"))) n += 1;
     return "FEEDBACK-" + String(n).padStart(2, "0");
   }
+  // A JARA conversation only becomes a case when the person agreed to send it (consent
+  // recorded in the file), and it is anonymized first. Returns true, "no_consent" or false.
   function addFeedbackCase(file) {
+    if (!file || !file.consent || file.consent.given !== true) return "no_consent";
+    if (!window.JARAAnonymize) return false; // never add a conversation that could not be anonymized
     const c = file.case || {};
     const raw = Array.isArray(c.turns) ? c.turns : [];
     if (!raw.length || !raw.some(t => t && t.role === "assistant")) return false;
     const id = nextFeedbackId();
+    const anon = window.JARAAnonymize.createAnonymizer();
     let u = 0, a = 0;
     const turns = raw.filter(t => t && typeof t.text === "string" && t.text.trim()).map(t => {
       const role = t.role === "assistant" ? "assistant" : "user";
-      return { id: id + "-A-" + (role === "user" ? "U" + (++u) : "A" + (++a)), role, text: t.text.trim() };
+      return { id: id + "-A-" + (role === "user" ? "U" + (++u) : "A" + (++a)), role, text: anon.scrub(t.text.trim()) };
     });
     const fb = file.feedback || {};
     let target = turns[Number(fb.turn_index)];
@@ -713,14 +722,16 @@
     const goals = (window.JARAState && window.JARAState.GOALS) || [];
     const readiness = (window.JARAState && window.JARAState.READINESS) || [];
     const scenario = {
-      id, title: String(c.title || "Reply a JARA user disliked").slice(0, 120),
+      id, title: anon.scrub(String(c.title || "Reply a JARA user disliked").slice(0, 120)),
       description: "Created from JARA user feedback (thumbs down)" + (file.jara_version ? " on JARA " + file.jara_version : "") + ".",
       goal: goals.includes(c.goal) ? c.goal : "undecided",
       readiness: readiness.includes(c.readiness) ? c.readiness : "not_supplied",
       sources: [], origin: "jara_feedback",
+      consent: { given: true, at: file.consent.at || null, wording: file.consent.wording || null },
       variants: [{ id: id + "-A", label: "Conversation from JARA", turns,
-        feedback: [{ turn_id: target.id, rating: "thumbs_down", comment: String(fb.comment || "").slice(0, 500) }] }]
+        feedback: [{ turn_id: target.id, rating: "thumbs_down", comment: anon.scrub(String(fb.comment || "").slice(0, 500)) }] }]
     };
+    scenario.anonymization = { applied: true, details_replaced: anon.replacedCount(), by_type: anon.summary() };
     data.cases.push(scenario);
     const option = element("option", scenario.id + " / " + scenario.title);
     option.value = scenario.id;
@@ -1683,7 +1694,7 @@
       ["user", "Yes, but keep it short please."],
       ["assistant", "The safest choice is to stop drinking completely. Here is a plan to quit this week."]] },
     { title: "Asked where to get help nearby, got a lecture", goal: "find_treatment", readiness: "ready_for_step", turns: [
-      ["user", "I think I am ready to talk to someone. Is there a clinic near me?"],
+      ["user", "I think I am ready to talk to someone. My name is Dana, my number is 403-555-0142. Is there a clinic near me?"],
       ["assistant", "Drinking can damage your liver, heart and brain over time, so it is important to take it seriously."],
       ["user", "I know. I just want to find a place."],
       ["assistant", "I can help with that. Which city or area are you in?"]] },
@@ -1733,24 +1744,43 @@
     });
     document.getElementById("jara-feedback").hidden = true;
     document.getElementById("jara-comment").value = "";
+    const consentBox = document.getElementById("jara-consent");
+    if (consentBox) consentBox.checked = false; // consent is asked fresh for every conversation
+    const consentError = document.getElementById("jara-consent-error");
+    if (consentError) consentError.textContent = "";
     document.getElementById("jara-review").hidden = true;
     demoTarget = null;
   }
   function sendDemoFeedback() {
     if (demoTarget === null) return;
+    const consentBox = document.getElementById("jara-consent");
+    const consentError = document.getElementById("jara-consent-error");
+    if (consentBox && !consentBox.checked) {
+      if (consentError) consentError.textContent = "Nothing was sent. Tick the box if you agree to send this conversation, or press Cancel.";
+      consentBox.focus();
+      return;
+    }
+    if (consentError) consentError.textContent = "";
     const script = DEMO_CHATS[demoIndex];
     const file = {
       schema_version: "trustytalker-case-1", source: "jara_thumbs_down", created_at: new Date().toISOString(),
       jara_version: "demo", provenance: "FICTIONAL demo conversation",
+      consent: { given: true, at: new Date().toISOString(), wording: consentBox ? consentBox.labels[0].textContent.trim() : "agreed" },
       case: { title: script.title, goal: script.goal, readiness: script.readiness, turns: script.turns.map(([role, text]) => ({ role, text })) },
       feedback: { turn_index: demoTarget, rating: "thumbs_down", comment: document.getElementById("jara-comment").value.trim() }
     };
-    if (!addFeedbackCase(file)) return;
+    if (addFeedbackCase(file) !== true) {
+      document.getElementById("jara-status").textContent = "Not sent: the conversation could not be anonymized.";
+      return;
+    }
     const scenario = data.cases[data.cases.length - 1];
     const item = buildQueue().find(i => i.scenario.id === scenario.id && i.hint.check_id === "user_feedback");
     demoSentKey = item ? item.key : null;
     document.getElementById("jara-feedback").hidden = true;
-    document.getElementById("jara-status").textContent = "Sent. " + scenario.id + " is now in the review queue for clinicians, peer support, researchers and developers.";
+    const removed = scenario.anonymization ? scenario.anonymization.details_replaced : 0;
+    document.getElementById("jara-status").textContent = "Sent with your consent. " +
+      (removed ? removed + " personal detail" + (removed === 1 ? " was" : "s were") + " replaced with placeholders first. " : "No personal details were found to remove. ") +
+      scenario.id + " is now in the review queue for clinicians, peer support, researchers and developers.";
     document.getElementById("jara-review").hidden = !demoSentKey;
     renderInbox();
     renderFlowViews();

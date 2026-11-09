@@ -10,6 +10,7 @@
   <script src="data.js" defer></script>
   <!-- <script src="cases_extra.js" defer></script> -->
   <script src="engine/similarity.js" defer></script>
+  <script src="engine/anonymize.js" defer></script>
   <script src="engine/state_tracker.js" defer></script>
   <script src="student_checks.js" defer></script>
   <script src="checks/checks_common.js" defer></script>
@@ -475,6 +476,12 @@
       <div id="jara-feedback" class="jara-feedback" hidden>
         <label for="jara-comment">What was wrong with this reply? (optional)</label>
         <textarea id="jara-comment" rows="2" placeholder="For example: I said I only want to cut down."></textarea>
+        <div class="consent-box">
+          <input type="checkbox" id="jara-consent" aria-describedby="jara-consent-more">
+          <label for="jara-consent"><strong>I agree to send this conversation to the JARA quality team (TrustyTalker)</strong> so people can check JARA's reply and improve it.</label>
+          <p id="jara-consent-more" class="muted small">Before it is sent, names, phone numbers, emails, addresses, dates and health card numbers are replaced with placeholders such as [PHONE_1]. Saying no is fine: JARA keeps helping you the same way, and nothing is sent.</p>
+          <p id="jara-consent-error" class="consent-error" role="alert"></p>
+        </div>
         <div class="dialog-actions">
           <button id="jara-cancel" class="secondary" type="button">Cancel</button>
           <button id="jara-send" type="button">Send to TrustyTalker</button>

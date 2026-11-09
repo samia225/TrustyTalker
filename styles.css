@@ -291,6 +291,12 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--b
 .ai-tag-check { border-left-color: var(--unsure); background: var(--unsure-wash); }
 .ai-tag-none { border-left-color: var(--line); color: var(--muted); }
 .ai-summary { font-weight: 700; }
+/* Consent before a JARA conversation is sent to TrustyTalker (thumbs down). */
+.consent-box { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; margin: 12px 0 4px; padding: 10px 12px; border: 1px solid var(--blue-line); border-radius: var(--radius-md); background: var(--blue-wash); }
+.consent-box input { width: 18px; height: 18px; margin-top: 2px; }
+.consent-box p { grid-column: 2; margin: 0; }
+.consent-error { color: var(--flag); font-weight: 700; }
+.consent-error:empty { display: none; }
 .decision-confirmed { color: var(--flag); font-weight: 700; }
 .decision-rejected { color: var(--clean); font-weight: 700; }
 .decision-unsure { color: var(--unsure-ink); font-weight: 700; }
