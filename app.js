@@ -2950,8 +2950,14 @@
       button.tabIndex = on ? 0 : -1;
     }
     for (const panel of document.querySelectorAll(".auth-panel")) panel.hidden = panel.dataset.tab !== tab;
+    // Links under the card offer the other two options, never the one already open.
+    for (const link of document.querySelectorAll("[data-tab-go]")) link.parentElement.hidden = link.dataset.tabGo === tab;
   }
   function wireWelcome() {
+    // "Create an account" / "Continue as a guest" links under the card switch tabs.
+    for (const link of document.querySelectorAll("[data-tab-go]")) {
+      link.addEventListener("click", () => { showAuthTab(link.dataset.tabGo); const tab = document.getElementById("tab-" + link.dataset.tabGo); if (tab) tab.focus(); });
+    }
 
     for (const button of document.querySelectorAll(".auth-tab")) {
       button.addEventListener("click", () => showAuthTab(button.dataset.tab));
