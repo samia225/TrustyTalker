@@ -65,7 +65,6 @@ Without a key, `node judge/run_judge.js` does a dry run with no network. Saved r
 ## Slides and demonstration
 
 - **Slides:** [TrustyTalker presentation (Google Slides)](https://docs.google.com/presentation/d/1JGyxZ9rjJcRe2xCfBYWCW5StzpVJNszr/edit?usp=sharing&ouid=110349585327549657552&rtpof=true&sd=true)
-- **Demo video:** _[add link]_
 - **Live demo path:**
   1. Open `index.html` and continue as a guest. Choose **Clinician** on Home.
   2. Open CASE-10 ("Not ready to quit") from **Browse cases**.
