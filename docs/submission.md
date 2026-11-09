@@ -94,10 +94,10 @@ node scoring/score_report.js                 caught / missed / wrongly flagged, 
 
 **Which parts are implemented and which remain TODO?**
 - **Implemented:**
-  - 16 rule-based checks: repetition, near_repetition, goal_alignment, drift, saved_state,
+  - 18 rule-based checks: repetition, near_repetition, goal_alignment, drift, saved_state,
     declined_reask, source_support, crisis_response, unsafe_advice, over_refusal,
     respectful_language, scope_transparency, sycophancy, premature_advice,
-    information_gathering, overconfidence.
+    information_gathering, overconfidence, resource_missing, resource_location.
   - The state tracker, input and hint validation, TF-IDF source retrieval, and the
     regression suite.
   - The scoring report with rules vs AI judge agreement, and the reviewer panel (separate

@@ -2168,8 +2168,8 @@
     ["developer", "JARA developer", "Engineer who builds JARA. Gets repeats, sources, certainty and what JARA asks for."]
   ];
   const ROLE_CHECKS = {
-    peer: ["goal_alignment", "drift", "declined_reask", "premature_advice", "respectful_language", "information_gathering", "repetition", "near_repetition", "over_refusal", "user_feedback"],
-    developer: ["repetition", "near_repetition", "drift", "saved_state", "source_support", "overconfidence", "information_gathering", "premature_advice", "user_feedback"]
+    peer: ["goal_alignment", "drift", "declined_reask", "resource_missing", "premature_advice", "respectful_language", "information_gathering", "repetition", "near_repetition", "over_refusal", "user_feedback"],
+    developer: ["repetition", "near_repetition", "drift", "saved_state", "resource_missing", "resource_location", "source_support", "overconfidence", "information_gathering", "premature_advice", "user_feedback"]
   };
   let reviewerRole = "";
   function roleLabel(id) { return (ROLES.find(r => r[0] === id) || [null, ""])[1]; }
