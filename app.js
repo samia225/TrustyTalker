@@ -1462,7 +1462,7 @@
     const table = element("table", undefined, "grid-table all-cases-table");
     const caption = element("caption", "All cases. Choose a case to open it below.", "visually-hidden");
     const head = element("tr");
-    for (const h of ["Case", "Example", "Person's goal", "What the checks flagged"]) {
+    for (const h of ["Case", "Case title", "Example", "Person's goal", "What the checks flagged", "Added"]) {
       const th = element("th", h); th.scope = "col"; head.append(th);
     }
     table.append(caption, element("thead"), element("tbody"));
@@ -1499,8 +1499,14 @@
         open.addEventListener("click", event => { event.stopPropagation(); openCaseReview(scenario.id); });
         caseCell.append(open);
         if (vIndex === 0 && scenario.origin === "reviewer_added") caseCell.append(element("span", "Added", "case-tag"));
-        if (scenario.title) caseCell.append(element("span", scenario.title, "case-title")); // so a new case is easy to recognise
-        if (scenario.added_at) caseCell.append(element("span", (scenario.origin === "jara_feedback" ? "Received " : "Added ") + formatWhen(scenario.added_at), "case-when"));
+        // Own columns for the title and the time a case was added, so a new case is easy to find.
+        const titleCell = element("td", scenario.title || "", "case-title-cell");
+        const whenCell = element("td", undefined, "case-when-cell");
+        if (scenario.added_at) {
+          const when = element("time", formatWhen(scenario.added_at));
+          when.dateTime = scenario.added_at;
+          whenCell.append(when, element("span", scenario.origin === "jara_feedback" ? "JARA thumbs down" : "Added by a reviewer", "case-when"));
+        } else whenCell.append(element("span", "Built in", "case-when"));
         if (vIndex === 0 && ADDED_ORIGINS.includes(scenario.origin)) {
           const remove = element("button", "Remove", "link-button case-remove");
           remove.type = "button";
@@ -1521,8 +1527,8 @@
         const foundCell = element("td");
         if (critical) foundCell.append(element("span", "Safety", "badge badge-severity severity-critical"), document.createTextNode(" "));
         foundCell.append(document.createTextNode(found));
-        tr.append(caseCell, element("td", variant.label || variant.id), element("td", scenario.goal ? sentence(scenario.goal) : ""),
-          foundCell);
+        tr.append(caseCell, titleCell, element("td", variant.label || variant.id), element("td", scenario.goal ? sentence(scenario.goal) : ""),
+          foundCell, whenCell);
         tr.addEventListener("click", () => openCaseReview(scenario.id)); // mouse: whole row; keyboard: the case button
         table.tBodies[0].append(tr);
         let checksHere = [];
