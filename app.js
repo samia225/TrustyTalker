@@ -876,24 +876,37 @@
   // whether a reviewer should look because the rules and the AI disagree.
   function aiTag(kind, title, detail) {
     const tag = element("div", undefined, "ai-tag ai-tag-" + kind);
-    tag.append(element("strong", title, "ai-tag-title"));
-    if (detail) tag.append(element("span", detail, "ai-tag-detail"));
+    tag.setAttribute("role", "note");
+    tag.setAttribute("aria-label", "AI judge opinion");
+    const head = element("div", undefined, "ai-tag-head");
+    head.append(element("span", "AI JUDGE", "ai-badge"),
+      element("span", "Second opinion from an AI model" + (judgeModelName() ? " (" + judgeModelName() + ")" : "") + ". It only suggests; a person decides.", "ai-tag-who"));
+    tag.append(head, element("strong", title, "ai-tag-title"));
+    if (detail) {
+      const why = element("span", undefined, "ai-tag-detail");
+      why.append(element("strong", "AI's reason: "), document.createTextNode(detail));
+      tag.append(why);
+    }
     return tag;
+  }
+  function judgeModelName() {
+    const raw = judgeData();
+    return raw && raw.settings && raw.settings.model ? String(raw.settings.model).replace(/-\d{4}-\d{2}-\d{2}$/, "") : "";
   }
   // What the AI judge thought about one JARA reply, in plain words. Shared by the
   // conversation page and the Review page. Returns null when no judge results are loaded.
   function aiVerdict(variantId, turnId, ruleFlagged) {
     const raw = judgeData();
     if (!raw || (!Array.isArray(raw) && !Array.isArray(raw.results))) return null;
-    if (!judgeCovered(variantId)) return { kind: "none", title: "AI judge: not run on this conversation", detail: "" };
+    if (!judgeCovered(variantId)) return { kind: "none", title: "Not run on this conversation (it was added after the AI run).", detail: "" };
     const judge = (judgeHintsFor(variantId) || []).filter(h => h.turn_id === turnId);
     const unsure = judgeUnsureFor(variantId, turnId);
     const reason = judge.map(h => h.reason).filter(Boolean).join(" ");
-    if (judge.length && ruleFlagged) return { kind: "agree", title: "AI judge also flagged this (" + describeChecks(judge) + ")", detail: reason };
-    if (judge.length) return { kind: "check", title: "AI judge flagged this, the rules did not (" + describeChecks(judge) + "). A reviewer should check.", detail: reason };
-    if (ruleFlagged) return { kind: "check", title: "AI judge found no problem, but the rules flagged this. A reviewer should check.", detail: unsure ? "AI was unsure: " + unsure.note : "" };
-    if (unsure) return { kind: "check", title: "AI judge was unsure about this reply. A reviewer should check.", detail: unsure.note };
-    return { kind: "ok", title: "AI judge: no problem found", detail: "" };
+    if (judge.length && ruleFlagged) return { kind: "agree", title: "Agrees: the AI also flagged this reply (" + describeChecks(judge) + ").", detail: reason };
+    if (judge.length) return { kind: "check", title: "Disagrees: the AI flagged this reply but the rules did not (" + describeChecks(judge) + "). A reviewer should check.", detail: reason };
+    if (ruleFlagged) return { kind: "check", title: "Disagrees: the AI found no problem, but the rules flagged this reply. A reviewer should check.", detail: unsure ? unsure.note : "" };
+    if (unsure) return { kind: "check", title: "Unsure: the AI could not decide about this reply. A reviewer should check.", detail: unsure.note };
+    return { kind: "ok", title: "The AI found no problem with this reply.", detail: "" };
   }
   function aiVerdictTag(variantId, turnId, ruleFlagged) {
     const v = aiVerdict(variantId, turnId, ruleFlagged);
@@ -927,7 +940,7 @@
     if (raw.status && raw.status !== "judge_run") box.append(element("p", "Test data only: " + (raw.note || "not a real judge run."), "muted judge-note"));
     const summary = judged
       ? "The AI judge and the rules agree on " + agree + " of " + judged + " JARA replies. " +
-        (check ? check + (check === 1 ? " reply needs" : " replies need") + " a reviewer to check (shown in orange under the reply)." : "Nothing needs an extra check.")
+        (check ? check + (check === 1 ? " reply needs" : " replies need") + " a reviewer to check (orange AI JUDGE boxes under the replies)." : "Nothing needs an extra check.")
       : "The AI judge has not been run on this case yet.";
     box.append(element("p", summary, "ai-summary"),
       element("p", "The AI's tag is shown under each JARA reply in the conversation. The AI only suggests; a reviewer decides.", "muted"));
