@@ -3373,7 +3373,7 @@
   window.addEventListener("popstate", () => { showView(viewFromHash() || "overview"); });
 
   // ---- Light / dark mode -------------------------------------------------
-  // Follows the computer's setting until the person picks one; the choice is
+  // Light by default (ui/theme-init.js) until the person picks dark; the choice is
   // remembered in this browser when storage is available.
   const themeButton = document.getElementById("theme-toggle");
   const darkQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
