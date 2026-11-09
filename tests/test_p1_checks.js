@@ -154,6 +154,46 @@ test("Near repetition flags nothing in the development cases", () => {
   }
 });
 
+// ---- Declined item re-asked
+function talk(...pairs) {
+  const turns = [];
+  pairs.forEach(([user, reply], i) => {
+    turns.push({ id: "PRACTICE-U" + (i + 1), role: "user", text: user });
+    turns.push({ id: "PRACTICE-A" + (i + 1), role: "assistant", text: reply });
+  });
+  return { scenario: { id: "PRACTICE", goal: "information", readiness: "exploring", sources: [] }, variant: { id: "PRACTICE-A", turns } };
+}
+test("Declined re-ask: offering the screening again after 'no thanks' is flagged", () => {
+  const hints = run(C.checkDeclinedReask, talk(
+    ["I just want information about support groups.", "Would you like to do a short screening first?"],
+    ["No thanks, I'd rather not do a screening.", "Okay. Here are some support groups."],
+    ["What times do they meet?", "Most meet in the evening. Would you like to complete the screening now?"]));
+  assert.deepEqual(hints.map(h => h.turn_id), ["PRACTICE-A3"]);
+  assert.equal(hints[0].confidence, "clear");
+  assert.equal(hints[0].evidence_quote, "Would you like to complete the screening now?");
+  assert.match(hints[0].reason, /PRACTICE-U2/);
+});
+test("Declined re-ask near-misses: acknowledging the decline, or the person asks for it again", () => {
+  assert.deepEqual(run(C.checkDeclinedReask, talk(
+    ["No thanks, I don't want a referral.", "Understood, we will skip the referral. What would help instead?"])), []);
+  assert.deepEqual(run(C.checkDeclinedReask, talk(
+    ["No thanks, I don't want a referral.", "Okay."],
+    ["Actually, how does a referral work?", "Would you like me to explain the referral steps?"])), []);
+  assert.deepEqual(run(C.checkDeclinedReask, talk(
+    ["Skip the questionnaire please.", "Sure. We won't do the questionnaire unless you ask for it."])), []);
+});
+test("Declined re-ask: another question after 'no more questions' goes to needs review", () => {
+  const hints = run(C.checkDeclinedReask, talk(
+    ["Not now, no more questions please.", "Okay. How are you feeling today?"]));
+  assert.equal(hints.length, 1);
+  assert.equal(hints[0].confidence, "needs_review");
+});
+test("Declined re-ask flags nothing in the development cases", () => {
+  for (const scenario of data.cases) for (const v of scenario.variants) {
+    assert.deepEqual(C.checkDeclinedReask(scenario, v), [], v.id);
+  }
+});
+
 // ---- Every new hint keeps the REFERENCE.txt contract
 test("Drift and saved-state hints quote their assistant turn word for word", () => {
   for (const scenario of data.cases) for (const variant of scenario.variants) {
