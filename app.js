@@ -240,6 +240,8 @@
       const section = element("section", undefined, "variant");
       section.setAttribute("aria-label", variant.label);
       section.append(element("h3", variant.label));
+      // Turn timeline (ui/timeline.js): one circle per turn, coloured after the checks run.
+      if (window.JARATimeline) section.append(window.JARATimeline.render(scenario, variant));
       const state = statePanel(scenario, variant);
       if (state) {
         const more = element("details", undefined, "rv-state conv-state");
@@ -291,6 +293,7 @@
     clearPrototype();
     document.querySelectorAll(".turn.flagged").forEach(node => node.classList.remove("flagged", "flagged-review"));
     clearQuoteMarks();
+    if (window.JARATimeline) window.JARATimeline.reset();
     const judgeBox = document.getElementById("judge-compare");
     if (judgeBox) judgeBox.replaceChildren();
     report = null;
@@ -352,6 +355,12 @@
         }
       }
       markQuotes(results);
+      if (window.JARATimeline) {
+        for (const variant of scenario.variants) {
+          const result = results.find(r => r.variant_id === variant.id);
+          window.JARATimeline.paint(variant, result ? result.hints : [], confidenceOf);
+        }
+      }
       addTurnComments();
       renderSummary(scenario, results);
       renderJudgeComparison(scenario, results);
@@ -525,7 +534,7 @@
     bar.setAttribute("aria-valuenow", String(done));
     bar.setAttribute("aria-label", "Findings reviewed");
     const keys = element("p", undefined, "shortcut-help");
-    for (const [k, label] of [["J", "next"], ["K", "previous"], ["C", "confirm"], ["R", "reject"], ["U", "unsure"]]) {
+    for (const [k, label] of [["J", "next"], ["K", "previous"], ["C", "confirm"], ["R", "reject"], ["E", "modify"], ["U", "unsure"]]) {
       keys.append(element("kbd", k), document.createTextNode(" " + label + "  "));
     }
     const toggle = element("button", "Shortcuts", "shortcut-toggle");
@@ -557,8 +566,8 @@
       while (i >= 0 && i < findingCards.length && findingCards[i].row.hidden) i += step;
       if (i >= 0 && i < findingCards.length) setActive(i, true);
     }
-    else if (["c", "r", "u"].includes(key) && activeIndex >= 0) {
-      const value = { c: "confirmed", r: "rejected", u: "unsure" }[key];
+    else if (["c", "r", "e", "u"].includes(key) && activeIndex >= 0) {
+      const value = { c: "confirmed", r: "rejected", e: "modified", u: "unsure" }[key];
       const button = findingCards[activeIndex].row.querySelector('.review-button[data-decision="' + value + '"]');
       if (button) { event.preventDefault(); button.click(); }
     }
@@ -572,7 +581,7 @@
     ["all", "All", () => true],
     ["needs", "Needs a decision", f => ["unsure", "not reviewed"].includes(decisionLabel(f.key))],
     ["critical", "Critical", f => isCritical(f.hint)],
-    ["decided", "Decided", f => ["confirmed", "rejected"].includes(decisionLabel(f.key))]
+    ["decided", "Decided", f => ["confirmed", "rejected", "modified"].includes(decisionLabel(f.key))]
   ];
   function buildFindingFilters() {
     const box = document.getElementById("finding-filters");
@@ -651,7 +660,7 @@
             let at = current[index] && current[index].turn_id === hint.turn_id && current[index].check_id === hint.check_id ? index : -1;
             if (at < 0) at = current.findIndex(h => h.turn_id === hint.turn_id && h.check_id === hint.check_id);
             if (at < 0) { skipped += 1; return; }
-            const decision = ["confirmed", "rejected", "unsure"].includes(hr.decision) ? hr.decision : null;
+            const decision = ["confirmed", "rejected", "modified", "unsure"].includes(hr.decision) ? hr.decision : null;
             reviews.set([variant.id, hint.turn_id, hint.check_id, at].join("|"), {
               variant_id: variant.id, turn_id: hint.turn_id, check_id: hint.check_id, decision,
               reason: String(hr.reason || ""),
@@ -748,8 +757,10 @@
   }
 
   // ---- Human review: confirmed / rejected / unsure + reason + evidence ----
-  // Exact values requested by MCRC (Vatsal). Stored apart from the automated hint.
-  const DECISIONS = [["confirmed", "Confirm"], ["rejected", "Reject"], ["unsure", "Unsure"]];
+  // Stored apart from the automated hint. "modified" = a real problem, but the
+  // finding needs correcting (turn, check or severity); the correction goes in the reason box.
+  const DECISIONS = [["confirmed", "Confirm"], ["rejected", "Reject"], ["modified", "Modify"], ["unsure", "Unsure"]];
+  const IS_PROBLEM = ["confirmed", "modified"]; // decisions that count as a real problem
   function reviewControls(key, variantId, hint) {
     const box = element("div", undefined, "review");
     const group = element("div", undefined, "review-buttons");
@@ -792,8 +803,9 @@
         button.setAttribute("aria-pressed", String(button.dataset.decision === current));
       }
       box.dataset.decision = current || "";
-      note.textContent = current ? "Reviewer decision: " + current + ". Add a reason below." : "Choose Confirm, Reject or Unsure. A box for your reason appears next.";
-      regression.hidden = current !== "confirmed";
+      note.textContent = current === "modified" ? "Reviewer decision: modified. Write the correction below (turn, check or severity)."
+        : current ? "Reviewer decision: " + current + ". Add a reason below." : "Choose Confirm, Reject, Modify or Unsure. A box for your reason appears next.";
+      regression.hidden = !IS_PROBLEM.includes(current);
       updateTurnComment(key);
       renderProgress();
     }
@@ -891,7 +903,7 @@
   // Builds the export. Every original field is kept as it was; each finding only
   // gains a separate human_review object, so automated and human judgement never mix.
   function buildExport() {
-    const counts = { confirmed: 0, rejected: 0, unsure: 0, not_reviewed: 0 };
+    const counts = { confirmed: 0, rejected: 0, modified: 0, unsure: 0, not_reviewed: 0 };
     const results = report.results.map(result => ({
       variant_id: result.variant_id,
       hints: result.hints.map((hint, index) => {
@@ -926,7 +938,7 @@
     const scenario = scenarioArg || selectedCase();
     const variant = scenario && scenario.variants.find(v => v.id === variantId);
     const review = humanReviewFor(key, hint);
-    if (!variant || !review || review.decision !== "confirmed") return null;
+    if (!variant || !review || !IS_PROBLEM.includes(review.decision)) return null;
     const turnIndex = variant.turns.findIndex(t => t.id === hint.turn_id);
     // Similar case: another example in the same case where this check raises nothing.
     let similar = null;
@@ -1322,7 +1334,7 @@
   // GUIDED FLOW (Overview → Review → Results)
   // Modelled on systematic-review screening tools (Covidence) and the PRISMA
   // flow diagram, so a first-time reviewer knows what to do without training:
-  // one finding at a time, a plain question, big Yes / No / Not sure buttons,
+  // one finding at a time, a plain question, big Yes / No / Modify / Not sure buttons,
   // and a flow diagram that fills itself in from the decisions.
   // Decisions use the same `reviews` map, keys and export fields as before.
   // ======================================================================
@@ -1366,7 +1378,7 @@
       a.caseOrder - b.caseOrder);
     return items;
   }
-  function decided(key) { return ["confirmed", "rejected"].includes(decisionLabel(key)); }
+  function decided(key) { return ["confirmed", "rejected", "modified"].includes(decisionLabel(key)); }
 
   // Counts for the flow diagram and the stage cards.
   function flowCounts() {
@@ -1375,19 +1387,19 @@
     const flaggedExamples = new Set();
     for (const scenario of data.cases) examples += scenario.variants.length;
     for (const item of queue) flaggedExamples.add(item.variant.id);
-    const c = { confirmed: 0, rejected: 0, unsure: 0, left: 0 };
+    const c = { confirmed: 0, rejected: 0, modified: 0, unsure: 0, left: 0 };
     let confirmedCritical = 0;
     for (const item of queue) {
       const d = decisionLabel(item.key);
       if (d === "not reviewed") c.left += 1; else c[d] += 1;
-      if (d === "confirmed" && isCritical(item.hint)) confirmedCritical += 1;
+      if (IS_PROBLEM.includes(d) && isCritical(item.hint)) confirmedCritical += 1;
     }
     return {
       queue, cases: data.cases.length, examples, checks: api.checks.filter(x => x.implemented).length,
       flagged: flaggedExamples.size, clean: examples - flaggedExamples.size,
       findings: queue.length, critical: queue.filter(i => isCritical(i.hint)).length,
-      reviewed: c.confirmed + c.rejected + c.unsure, confirmedCritical,
-      regressions: [...savedRegressions].filter(k => decisionLabel(k) === "confirmed").length, ...c
+      reviewed: c.confirmed + c.rejected + c.modified + c.unsure, confirmedCritical,
+      regressions: [...savedRegressions].filter(k => IS_PROBLEM.includes(decisionLabel(k))).length, ...c
     };
   }
 
@@ -1476,7 +1488,7 @@
       const forRole = n.queue.filter(i => !decided(i.key) && canReview(i.hint)).length;
       const roleName = reviewerRole ? roleLabel(reviewerRole).toLowerCase() : "you";
       for (const [label, value, tone, extra] of [["Yes, a problem", n.confirmed, "confirmed"], ["No, fine", n.rejected, "rejected"],
-        ["Not sure", n.unsure, "unsure"], ["Still to decide for " + roleName, forRole, "open", n.left + " left for everyone"]]) {
+        ["Modified", n.modified, "modified"], ["Not sure", n.unsure, "unsure"], ["Still to decide for " + roleName, forRole, "open", n.left + " left for everyone"]]) {
         const tile = element("div", undefined, "result-tile tile-" + tone);
         tile.append(element("strong", String(value)), element("span", label));
         if (extra) tile.append(element("small", extra, "tile-extra"));
@@ -1712,7 +1724,7 @@
       text.append(element("strong", c.id + " · " + c.title),
         element("span", fb.comment ? "\u201c" + fb.comment + "\u201d" : "No comment from the user", "muted"));
       const d = item ? decisionLabel(item.key) : "not reviewed";
-      const status = element("span", { confirmed: "Confirmed", rejected: "Not a problem", unsure: "Not sure", "not reviewed": "Waiting" }[d], "decision-pill decision-" + d.replace(" ", "-"));
+      const status = element("span", { confirmed: "Confirmed", rejected: "Not a problem", modified: "Modified", unsure: "Not sure", "not reviewed": "Waiting" }[d], "decision-pill decision-" + d.replace(" ", "-"));
       const open = element("button", "Review", "secondary");
       open.type = "button";
       open.setAttribute("aria-label", "Review " + c.id);
@@ -1902,6 +1914,7 @@
     const CHOICES = [
       ["confirmed", "Yes", "it is a problem (confirm)"],
       ["rejected", "No", "it is fine (reject)"],
+      ["modified", "Modify", "a problem, but the finding needs changes"],
       ["unsure", "Not sure", "needs a second look"]
     ];
     for (const [value, big, small] of CHOICES) {
@@ -1949,7 +1962,7 @@
       reasonWrap.hidden = !current;
       clear.hidden = !current;
       next.textContent = current ? "Next →" : "Skip for now →";
-      note.textContent = current ? "Saved: " + { confirmed: "Yes, a problem", rejected: "No, it is fine", unsure: "Not sure" }[current] + "." : "";
+      note.textContent = current ? "Saved: " + { confirmed: "Yes, a problem", rejected: "No, it is fine", modified: "Modified", unsure: "Not sure" }[current] + "." : "";
       updateTurnComment(key);
       renderFlowViews();
       const counter = document.getElementById("rv-left");
@@ -2083,13 +2096,13 @@
       window.scrollTo({ top: document.getElementById("main-content").offsetTop - 80, behavior: "smooth" });
     }
   }
-  // Y / N / M decide, arrows move. Off while typing, and off when the
+  // Y / N / E / M decide (E = modify), arrows move. Off while typing, and off when the
   // shortcut toggle is off (WCAG 2.1.4).
   document.addEventListener("keydown", event => {
     if (currentView !== "review" || !shortcutsOn) return;
     const tag = (event.target.tagName || "").toLowerCase();
     if (["input", "textarea", "select"].includes(tag) || event.metaKey || event.ctrlKey || event.altKey) return;
-    const map = { y: "confirmed", n: "rejected", m: "unsure" };
+    const map = { y: "confirmed", n: "rejected", e: "modified", m: "unsure" };
     const key = event.key.toLowerCase();
     if (map[key]) {
       const button = document.querySelector('#review-screen .rv-choice[data-decision="' + map[key] + '"]');
@@ -2112,7 +2125,7 @@
       const d = decisionLabel(item.key);
       const tr = element("tr", undefined, d === "not reviewed" ? "row-open" : "");
       const decision = element("td");
-      decision.append(element("span", { confirmed: "Yes, a problem", rejected: "No, fine", unsure: "Not sure", "not reviewed": "Not decided" }[d], "decision-pill decision-" + d.replace(" ", "-")));
+      decision.append(element("span", { confirmed: "Yes, a problem", rejected: "No, fine", modified: "Modified", unsure: "Not sure", "not reviewed": "Not decided" }[d], "decision-pill decision-" + d.replace(" ", "-")));
       const change = element("button", d === "not reviewed" ? "Review" : "Change", "link-button");
       change.type = "button";
       change.setAttribute("aria-label", (d === "not reviewed" ? "Review " : "Change decision for ") + item.hint.turn_id);
@@ -2135,7 +2148,7 @@
   // One file with every case (an array of the same per-case reports as before),
   // so Import can restore the whole review.
   function exportForCase(scenario) {
-    const counts = { confirmed: 0, rejected: 0, unsure: 0, not_reviewed: 0 };
+    const counts = { confirmed: 0, rejected: 0, modified: 0, unsure: 0, not_reviewed: 0 };
     const results = scenario.variants.map(variant => {
       let hints = [];
       try { hints = hintsFor(scenario, variant); } catch (error) { hints = []; }
@@ -2202,7 +2215,7 @@
   function downloadAllRegressions() {
     const tests = [];
     for (const item of buildQueue()) {
-      if (decisionLabel(item.key) !== "confirmed") continue;
+      if (!IS_PROBLEM.includes(decisionLabel(item.key))) continue;
       const test = buildRegression(item.key, item.variant.id, item.hint, item.scenario);
       if (test) { tests.push(test); savedRegressions.add(item.key); }
     }
@@ -2542,7 +2555,7 @@
     [null, name => "Hi " + name + "! I'm Trusty. I'll show you how to get started. It takes a minute."],
     [".role-card", () => "This is your role. It decides which replies you get. Safety problems only go to clinicians."],
     ["#start-button", () => "Press Start reviewing. You get 5 flagged replies, picked at random."],
-    [null, () => "For each reply, read the conversation, choose Yes, No or Not sure, and write one sentence on why."],
+    [null, () => "For each reply, read the conversation, choose Yes, No, Modify or Not sure, and write one sentence on why."],
     ['[data-nav="results"]', () => "When you're done, open Results and download your work as JSON or CSV."],
     ["#overview-add-case", () => "You can also browse every case and add your own fictional case here."],
     ["#view-overview .page-help-more a", () => "Want pictures? The step-by-step guide is here. Have fun reviewing!"]
@@ -2614,7 +2627,7 @@
   const VIEWS = { welcome: "Welcome", guide: "Visual guide", overview: "Home", review: "Review", results: "Results", cases: "Browse cases", conversation: "Conversation", findings: "Case findings" };
   const HERO = {
     overview: ["Review JARA's replies", "Automatic checks flag replies that may ignore what the person asked for. You decide whether each one is a real problem."],
-    review: ["Review", "Read the highlighted reply in its conversation, then choose Yes, No or Not sure. Add one sentence on why."],
+    review: ["Review", "Read the highlighted reply in its conversation, then choose Yes, No, Modify or Not sure. Add one sentence on why."],
     results: ["Results", "Every decision so far, the flow from conversations to confirmed problems, and the files to download."],
     cases: ["Browse cases", "Every case and both example conversations. Open one to read them side by side, or add your own fictional case."],
     conversation: ["Compare two conversations", "Two possible conversations for the same person. Flagged replies are marked in red."],
