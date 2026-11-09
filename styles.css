@@ -915,14 +915,3 @@ textarea[aria-invalid="true"] { border-color: var(--flag); box-shadow: 0 0 0 3px
 .state-list dd { margin: 0; font-size: .84rem; }
 .state-note { display: block; margin-top: 6px; color: var(--muted); font-size: .74rem; }
 
-/* ---- Modify decision ---- */
-.review-modified[aria-pressed="true"] { background: var(--violet); border-color: var(--violet); color: #fff; }
-.review[data-decision="modified"] .review-note { color: var(--ink); font-weight: 600; }
-.rv-choices { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.rv-modified:hover, .rv-modified[aria-pressed="true"] { border-color: var(--violet); background: var(--violet-wash); }
-.rv-modified[aria-pressed="true"] { color: var(--violet-ink); }
-.rv-panel[data-decision="modified"] { border-top-color: var(--violet); }
-.decision-modified { background: var(--violet-wash); color: var(--violet-ink); font-weight: 700; }
-.tile-modified { border-left-color: var(--violet); }
-.result-tiles { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-@media (max-width: 720px) { .rv-choices { grid-template-columns: 1fr 1fr; } }
