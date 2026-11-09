@@ -2086,7 +2086,8 @@
     box.setAttribute("aria-label", heading || "The conversation");
     const head = element("div", undefined, "rv-convo-head");
     head.append(element("h2", heading || "The conversation"),
-      element("p", scenario.id + " · " + scenario.title + " · " + (variant.label || variant.id), "muted"));
+      element("p", scenario.id + " · " + scenario.title + " · " + (variant.label || variant.id) +
+        " · " + variant.turns.length + " message" + (variant.turns.length === 1 ? "" : "s") + ", shown in full", "muted"));
     box.append(head);
     box.append(turnList(variant, hint));
     // What the person said (goal, readiness...) sits under the conversation so
