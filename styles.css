@@ -895,6 +895,17 @@ textarea[aria-invalid="true"] { border-color: var(--flag); box-shadow: 0 0 0 3px
 @keyframes mascot-pulse { 0%, 100% { outline-offset: 4px; } 50% { outline-offset: 8px; } }
 @media (max-width: 520px) { .mascot-bot { width: 60px; height: 60px; } .mascot { right: 10px; bottom: 10px; } }
 
+/* Spotlight while Trusty's tips are open: the rest of the page goes dark and the part the tip
+   talks about stays lit. Done with classes only (the CSP blocks inline styles): the lit part
+   gets a huge outer shadow that covers everything around it. A clear layer above the page
+   stops clicks on the dimmed page; Trusty stays on top and clickable. */
+body.tour-on .mascot { z-index: 1003; }
+body.tour-on::after { content: ""; position: fixed; inset: 0; z-index: 1002; background: transparent; }
+body.tour-on.tour-no-target::after { background: rgba(14, 8, 22, .62); }
+body.tour-on .mascot-target { position: relative; z-index: 1001; box-shadow: 0 0 0 9999px rgba(14, 8, 22, .62); }
+@media (prefers-reduced-motion: reduce) { body.tour-on .mascot-target { animation: none; } }
+@media (forced-colors: active) { body.tour-on .mascot-target { box-shadow: none; } body.tour-on.tour-no-target::after { background: transparent; } }
+
 /* 15. Dark mode: only the tokens change ---------------------------------- */
 :root[data-theme="dark"] {
   color-scheme: dark;

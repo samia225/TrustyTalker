@@ -3245,6 +3245,7 @@
   let tipIndex = 0;
   function mascotKey() { return "tt-mascot-seen:" + (currentAccount() ? currentAccount().id : "guest"); }
   function clearTarget() { for (const el of document.querySelectorAll(".mascot-target")) el.classList.remove("mascot-target"); }
+  function endSpotlight() { clearTarget(); document.body.classList.remove("tour-on", "tour-no-target"); }
   function paintTip() {
     const name = currentAccount() ? currentAccount().name.split(" ")[0] : "there";
     const [selector, text] = TIPS[tipIndex];
@@ -3255,7 +3256,11 @@
     next.textContent = tipIndex === TIPS.length - 1 ? "Done" : "Next";
     clearTarget();
     const target = selector && document.querySelector(selector);
-    if (target && target.offsetParent !== null) {
+    const lit = !!(target && target.offsetParent !== null);
+    // Spotlight (styles.css): dim the page; light up the part this tip is about.
+    document.body.classList.add("tour-on");
+    document.body.classList.toggle("tour-no-target", !lit);
+    if (lit) {
       target.classList.add("mascot-target");
       const r = target.getBoundingClientRect();
       if (r.top < 70 || r.bottom > window.innerHeight - 220) target.scrollIntoView({ block: "center" });
@@ -3265,14 +3270,14 @@
     const bubble = document.getElementById("mascot-bubble");
     bubble.hidden = !open;
     document.getElementById("mascot-bot").setAttribute("aria-expanded", String(open));
-    if (open) paintTip(); else clearTarget();
+    if (open) paintTip(); else endSpotlight();
   }
   function showMascot(viewName) {
     const box = document.getElementById("mascot");
     if (!box) return;
     const show = !!session && viewName === "overview";
     box.hidden = !show;
-    if (!show) { clearTarget(); return; }
+    if (!show) { endSpotlight(); return; }
     let seen = false;
     try { seen = localStorage.getItem(mascotKey()) === "1"; } catch (e) { seen = true; }
     if (!seen) { tipIndex = 0; openMascot(true); try { localStorage.setItem(mascotKey(), "1"); } catch (e) { /* storage off */ } }
