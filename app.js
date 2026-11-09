@@ -2024,48 +2024,35 @@
     };
   }
 
-  function flowBox(title, number, detail, tone, action) {
-    const box = element("div", undefined, "flow-box" + (tone ? " flow-" + tone : ""));
-    box.append(element("span", title, "flow-title"), element("strong", String(number), "flow-number"));
-    if (detail) box.append(element("span", detail, "flow-detail"));
-    if (action) box.append(action);
-    return box;
-  }
+  // Four steps in one row (checked, flagged, decided, confirmed), each with one big number
+  // and a short note, plus one progress bar. Simpler to read than the two-column flow below.
   function flowDiagram(n) {
-    // Main column top to bottom; side boxes branch off to the right, like the
-    // "records excluded" boxes in a PRISMA 2020 diagram.
-    const wrap = element("div", undefined, "flow");
-    wrap.setAttribute("role", "list");
-    wrap.setAttribute("aria-label", "Flow from conversations to confirmed problems");
-    const rows = [
-      [flowBox("Conversations checked", n.examples, "by " + n.checks + " automatic checks"),
-        flowBox("Nothing flagged", n.clean, "not a pass: the checks can miss things", "side")],
-      [flowBox("Flagged for you", n.findings, "in " + n.flagged + " conversations" + (n.critical ? ", " + n.critical + " safety" : ""), "flag"),
-        flowBox("Still to decide", n.left, "", "side")],
-      [flowBox("Decided by you", n.reviewed, "of " + n.findings),
-        flowBox("No or not sure", n.rejected + n.unsure, n.unsure ? n.rejected + " no · " + n.unsure + " not sure" : "", "side")],
-      [flowBox("Confirmed problems", n.confirmed, "become regression tests for JARA", "confirm"), null]
+    const wrap = element("div", undefined, "pipeline-wrap");
+    const list = element("ol", undefined, "pipeline");
+    list.setAttribute("aria-label", "From conversations to confirmed problems");
+    const steps = [
+      ["Checked", n.examples, "conversations, by " + n.checks + " checks", n.clean + " had nothing flagged (not a pass)", ""],
+      ["Flagged", n.findings, "replies in " + n.flagged + " conversations", n.critical ? n.critical + " are safety problems" : "", "flag"],
+      ["Decided", n.reviewed, "of " + n.findings + " by reviewers", n.left + " still to decide" + (n.rejected + n.unsure ? " · " + n.rejected + " no, " + n.unsure + " not sure" : ""), "decided"],
+      ["Confirmed", n.confirmed, "real problems", "each becomes a regression test", "confirm"]
     ];
-    rows.forEach(([main, side], i) => {
-      const row = element("div", undefined, "flow-row" + (side ? " has-side" : ""));
-      row.setAttribute("role", "listitem");
-      main.classList.add("flow-main");
-      row.append(main);
-      if (side) {
-        const arrow = element("span", undefined, "flow-branch");
-        arrow.setAttribute("aria-hidden", "true");
-        row.append(arrow, side);
-      }
-      if (i < rows.length - 1) {
-        const down = element("span", undefined, "flow-down");
-        down.setAttribute("aria-hidden", "true");
-        row.append(down);
-      }
-      wrap.append(row);
+    steps.forEach(([label, value, detail, note, tone], i) => {
+      const step = element("li", undefined, "pipe-step" + (tone ? " pipe-" + tone : ""));
+      const head = element("div", undefined, "pipe-head");
+      head.append(element("span", String(i + 1), "pipe-num"), element("span", label, "pipe-label"));
+      step.append(head, element("strong", String(value), "pipe-value"), element("span", detail, "pipe-detail"));
+      if (note) step.append(element("span", note, "pipe-note"));
+      list.append(step);
     });
+    const bar = element("progress", undefined, "pipe-progress");
+    bar.max = Math.max(1, n.findings);
+    bar.value = n.reviewed;
+    bar.id = "pipe-progress";
+    const barLabel = element("label", n.reviewed + " of " + n.findings + " flagged replies decided", "pipe-progress-label");
+    barLabel.htmlFor = "pipe-progress";
+    wrap.append(list, barLabel, bar);
     return wrap;
   }
-
   function renderStart(n) {
     const text = document.getElementById("start-text");
     const button = document.getElementById("start-button");
