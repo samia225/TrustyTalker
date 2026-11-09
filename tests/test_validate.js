@@ -94,4 +94,38 @@ test("The AI judge picks up validate.js and sends an invented quote to needs rev
   assert.match(h.reason, /Needs review/);
 });
 
+// ---- Page path: a minimal stand-in document (no browser needed)
+function pageWith(dataForPage) {
+  const made = [];
+  const node = (tag) => {
+    const n = { tag, id: "", className: "", textContent: "", children: [], attrs: {},
+      setAttribute(k, v) { this.attrs[k] = v; }, append(...c) { this.children.push(...c); }, remove() { this.removed = true; } };
+    made.push(n);
+    return n;
+  };
+  const main = node("main");
+  main.prepend = (c) => main.children.unshift(c);
+  const fakeRoot = { JARAData: dataForPage };
+  const document = { readyState: "complete", body: main, addEventListener() {},
+    getElementById: (id) => id === "main-content" ? main : null, createElement: node };
+  const source = fs.readFileSync(path.join(__dirname, "..", "engine", "validate.js"), "utf8");
+  new Function("globalThis", "document", "module", "console", source)(fakeRoot, document, undefined, { warn() {}, error() {} });
+  return { main, api: fakeRoot.JARAValidate };
+}
+test("Page: problems are listed at the top of <main> as an alert", () => {
+  const bad = goodData();
+  bad.cases[0].goal = "quit_now";
+  const { main, api } = pageWith(bad);
+  const box = main.children[0];
+  assert.equal(box.id, "validation-problems");
+  assert.equal(box.attrs.role, "alert");
+  assert.match(box.children[1].children[0].textContent, /PRACTICE: goal "quit_now"/);
+  assert.equal(api.lastResult.ok, false);
+});
+test("Page: valid data adds nothing to the page", () => {
+  const { main, api } = pageWith(goodData());
+  assert.equal(main.children.length, 0);
+  assert.equal(api.lastResult.ok, true);
+});
+
 console.log("\n" + passed + " validation tests passed.");
