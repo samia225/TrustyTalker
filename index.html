@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; connect-src 'none'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
   <title>TrustyTalker: JARA conversation review</title>
+  <!-- Runs first, without defer: applies the saved light / dark theme before the page is drawn (no flash). -->
+  <script src="ui/theme-init.js"></script>
   <link rel="stylesheet" href="styles.css">
   <!-- Load order matters: data, engine, checks, answer key, UI modules, then app.js. -->
   <script src="data.js" defer></script>
@@ -609,7 +611,7 @@
         <button id="add-save" type="button">Add case and run checks</button>
       </div>
     </dialog>
-    <footer><a href="#guide">How to use TrustyTalker (visual guide)</a> · Fictional examples only, not live JARA replies or clinical advice. Runs on this computer: no server, database or AI connection.</footer>
+    <footer><a href="#guide">How to use TrustyTalker (visual guide)</a> · Runs on this computer: no server, database or AI connection.</footer>
   </main>
   <aside class="mascot" id="mascot" aria-label="Getting started helper" hidden>
     <div class="mascot-bubble" id="mascot-bubble" hidden>
