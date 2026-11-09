@@ -297,6 +297,27 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--b
 .consent-box p { grid-column: 2; margin: 0; }
 .consent-error { color: var(--flag); font-weight: 700; }
 .consent-error:empty { display: none; }
+/* Two-reviewer rule (Review panel and Results table). */
+.two-review { display: grid; gap: 4px; margin-top: 10px; padding: 8px 12px; border: 1px solid var(--line); border-left-width: 5px; border-radius: var(--radius-md); background: var(--panel-alt); font-size: .85rem; }
+.two-review-note { color: var(--muted); }
+.two-review-list { margin: 2px 0 0; padding-left: 18px; }
+.two-review-not_reviewed, .two-review-needs_second_reviewer { border-left-color: var(--blue); }
+.two-review-agreed_problem { border-left-color: var(--flag); }
+.two-review-agreed_fine { border-left-color: var(--clean); }
+.two-review-reviewers_disagree { border-left-color: var(--unsure); background: var(--unsure-wash); }
+.consensus-pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .72rem; font-weight: 700; background: var(--panel-alt); color: var(--muted); border: 1px solid var(--line); }
+.consensus-needs_second_reviewer { background: var(--blue-wash); color: var(--blue-text); border-color: var(--blue-line); }
+.consensus-agreed_problem { background: var(--flag-wash); color: var(--flag); border-color: var(--flag-line); }
+.consensus-agreed_fine { background: var(--clean-wash); color: var(--clean); border-color: var(--clean-line); }
+.consensus-reviewers_disagree { background: var(--unsure-wash); color: var(--unsure-ink); border-color: var(--unsure-line); }
+/* Admin alerts: extreme safety problems. */
+.admin-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 12px auto 0; max-width: 1100px; padding: 10px 16px; border: 1px solid var(--flag-line); border-left-width: 6px; border-left-color: var(--flag); border-radius: var(--radius-md); background: var(--flag-wash); color: var(--ink); }
+.admin-banner[hidden] { display: none; }
+.admin-banner strong { color: var(--flag); }
+.admin-banner-open { margin-left: auto; }
+.admin-alerts:not(:empty) { margin: 24px 0; padding: 16px; border: 1px solid var(--flag-line); border-top: 4px solid var(--flag); border-radius: var(--radius-lg); background: var(--panel); }
+.admin-alerts h2 { margin-top: 0; }
+.grid-table tr.row-alert td { background: var(--flag-wash); }
 .decision-confirmed { color: var(--flag); font-weight: 700; }
 .decision-rejected { color: var(--clean); font-weight: 700; }
 .decision-unsure { color: var(--unsure-ink); font-weight: 700; }

@@ -664,12 +664,18 @@
             if (at < 0) at = current.findIndex(h => h.turn_id === hint.turn_id && h.check_id === hint.check_id);
             if (at < 0) { skipped += 1; return; }
             const decision = ["confirmed", "rejected", "unsure"].includes(hr.decision) ? hr.decision : null;
-            reviews.set([variant.id, hint.turn_id, hint.check_id, at].join("|"), {
+            const reviewKey = [variant.id, hint.turn_id, hint.check_id, at].join("|");
+            const record = {
               variant_id: variant.id, turn_id: hint.turn_id, check_id: hint.check_id, decision,
               reason: String(hr.reason || ""),
               evidence: hr.evidence && hr.evidence !== hint.evidence_quote ? String(hr.evidence) : "",
               reviewed_at: hr.reviewed_at || new Date().toISOString(), reviewer_role: hr.reviewer_role || null, reviewer: hr.reviewer || null, reviewer_id: hr.reviewer_id || null
-            });
+            };
+            // Another reviewer's decision is kept beside this reviewer's own (two-reviewer rule), never over it.
+            const mine = reviews.get(reviewKey);
+            const owner = userKey("tt-reviews").slice("tt-reviews:".length);
+            if (mine && mine.decision && reviewerIdentity(mine, owner) !== reviewerIdentity(record, "imported")) keepImportedReview(reviewKey, record);
+            else reviews.set(reviewKey, record);
             restored += 1;
             lastCase = scenario.id;
           });
@@ -850,6 +856,224 @@
     };
   }
 
+  // ---- Two-reviewer rule -------------------------------------------------
+  // A finding only counts as decided when at least two DIFFERENT reviewers agree.
+  // Decisions come from every reviewer who used this browser (each account keeps its
+  // own tt-reviews:<id>) plus decisions loaded from other reviewers' results files.
+  // The same person can never count twice. Names are left out of what is shown and exported.
+  const MIN_REVIEWERS = 2;
+  function reviewerIdentity(record, owner) {
+    if (record.reviewer_id) return "id:" + record.reviewer_id;
+    if (record.reviewer && record.reviewer !== "Guest") return "name:" + record.reviewer;
+    return "owner:" + owner;
+  }
+  // key -> [decision records], one per reviewer (their latest).
+  function decisionIndex() {
+    const byKey = new Map();
+    const take = (key, record, owner) => {
+      if (!record || !record.decision) return;
+      if (!byKey.has(key)) byKey.set(key, new Map());
+      const who = reviewerIdentity(record, owner);
+      const old = byKey.get(key).get(who);
+      if (!old || String(record.reviewed_at || "") > String(old.reviewed_at || "")) byKey.get(key).set(who, Object.assign({ who }, record));
+    };
+    const mine = userKey("tt-reviews");
+    for (const [key, record] of reviews) take(key, record, mine.slice("tt-reviews:".length));
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const name = localStorage.key(i);
+        if (!name || !name.startsWith("tt-reviews:") || name === mine) continue;
+        if (name === "tt-reviews:imported") {
+          const store = readJSON(name, {});
+          for (const key of Object.keys(store || {})) for (const record of Object.values(store[key] || {})) take(key, record, "imported");
+          continue;
+        }
+        const entries = readJSON(name, []);
+        if (Array.isArray(entries)) for (const e of entries) if (Array.isArray(e) && e.length === 2) take(e[0], e[1], name.slice("tt-reviews:".length));
+      }
+    } catch (error) { /* storage off: only this reviewer's decisions are known */ }
+    const out = new Map();
+    for (const [key, who] of byKey) out.set(key, [...who.values()]);
+    return out;
+  }
+  // A decision loaded from someone else's results file never overwrites this reviewer's own.
+  function keepImportedReview(key, record) {
+    const store = readJSON("tt-reviews:imported", {});
+    const all = store && typeof store === "object" ? store : {};
+    all[key] = all[key] || {};
+    all[key][reviewerIdentity(record, "imported")] = record;
+    writeJSON("tt-reviews:imported", all);
+  }
+  function consensusFor(key, index) {
+    const list = (index || decisionIndex()).get(key) || [];
+    const n = list.length;
+    const yes = list.filter(r => r.decision === "confirmed").length;
+    const no = list.filter(r => r.decision === "rejected").length;
+    let status;
+    if (!n) status = "not_reviewed";
+    else if (n < MIN_REVIEWERS) status = "needs_second_reviewer";
+    else if (yes === n) status = "agreed_problem";
+    else if (no === n) status = "agreed_fine";
+    else status = "reviewers_disagree";
+    return {
+      status, reviewers: n, needed: MIN_REVIEWERS, final: status === "agreed_problem" || status === "agreed_fine",
+      // No names: role and decision only.
+      decisions: list.map(r => ({ decision: r.decision, reviewer_role: r.reviewer_role || null, reviewed_at: r.reviewed_at || null })),
+      _list: list
+    };
+  }
+  function consensusLabel(c) {
+    if (c.status === "not_reviewed") return "0 of " + c.needed + " reviews";
+    if (c.status === "needs_second_reviewer") return c.reviewers + " of " + c.needed + " reviews: needs a second reviewer";
+    if (c.status === "agreed_problem") return c.reviewers + " reviewers agree: a problem";
+    if (c.status === "agreed_fine") return c.reviewers + " reviewers agree: fine";
+    return "Reviewers disagree: needs a final decision";
+  }
+  function consensusExport(c) { return { status: c.status, reviewers: c.reviewers, needed: c.needed, final: c.final, decisions: c.decisions }; }
+  const DECISION_WORDS = { confirmed: "Yes, a problem", rejected: "No, fine", unsure: "Not sure" };
+  function fillTwoReview(box, key) {
+    const c = consensusFor(key);
+    const me = reviewerIdentity(reviews.get(key) || {}, userKey("tt-reviews").slice("tt-reviews:".length));
+    const iDecided = c._list.some(r => r.who === me);
+    const note = {
+      not_reviewed: "Two different reviewers must decide before this finding counts.",
+      needs_second_reviewer: iDecided ? "Your answer is saved. A second reviewer must also decide before this counts." : "One reviewer has decided. Your answer would be the second.",
+      agreed_problem: "This finding now counts as a confirmed problem.",
+      agreed_fine: "This finding now counts as fine.",
+      reviewers_disagree: "The reviewers do not agree, or one is not sure. A clinician or the admin team makes the final call."
+    }[c.status];
+    box.className = "two-review two-review-" + c.status;
+    box.replaceChildren(element("strong", "Two-reviewer rule: " + consensusLabel(c)), element("span", note, "two-review-note"));
+    if (c._list.length) {
+      const ul = element("ul", undefined, "two-review-list");
+      let n = 0;
+      for (const r of c._list) {
+        const who = r.who === me ? "You" : "Reviewer " + (++n);
+        ul.append(element("li", who + (r.reviewer_role ? " (" + roleLabel(r.reviewer_role) + ")" : "") + ": " + (DECISION_WORDS[r.decision] || r.decision)));
+      }
+      box.append(ul);
+    }
+  }
+  function twoReviewBox(key) {
+    const box = element("div");
+    box.id = "two-review-box";
+    box.dataset.key = key;
+    box.setAttribute("aria-live", "polite");
+    fillTwoReview(box, key);
+    return box;
+  }
+  function refreshTwoReview() {
+    const box = document.getElementById("two-review-box");
+    if (box) fillTwoReview(box, box.dataset.key);
+  }
+
+  // ---- Admin alerts: extreme violations ----------------------------------
+  // Every critical (safety, release-blocking) finding, from the rule checks or the AI
+  // judge, is an admin alert. Alerts are worked out from the findings every time, never
+  // stored as a list, so no reviewer decision can remove one: a "No, fine" only changes
+  // its status. Admin accounts see a banner until each alert is marked as seen, and
+  // every alert is in the export. LIMIT: this page has no server, so it cannot email or
+  // page anyone; in JARA, MCRC's server would send the notification.
+  function isAdmin() {
+    const a = currentAccount();
+    return !!(a && a.profile && /^Admin team/.test(a.profile.group || ""));
+  }
+  function adminSeen() {
+    const s = readJSON("tt-admin-seen", {});
+    return s && typeof s === "object" && !Array.isArray(s) ? s : {};
+  }
+  function extremeAlerts() {
+    const index = decisionIndex();
+    const seen = adminSeen();
+    const alerts = [];
+    for (const item of buildQueue()) {
+      if (!isCritical(item.hint)) continue;
+      alerts.push({ key: item.key, case_id: item.scenario.id, variant_id: item.variant.id, turn_id: item.hint.turn_id,
+        check_id: item.hint.check_id, problem: plainName(item.hint.check_id), quote: item.hint.evidence_quote,
+        found_by: "Rule checks", consensus: consensusFor(item.key, index), seen: seen[item.key] || null });
+    }
+    // Critical AI judge flags on replies the rules did not flag as critical: these are
+    // not in the review queue, so the admin list is where they are guaranteed to surface.
+    const raw = judgeData();
+    for (const r of raw && Array.isArray(raw.results) ? raw.results : []) {
+      if (!data.cases.some(c => c.id === r.case_id)) continue;
+      for (const h of r.hints || []) {
+        if (h.severity !== "critical" || alerts.some(a => a.turn_id === h.turn_id)) continue;
+        const key = "ai_judge|" + h.turn_id + "|" + h.check_id;
+        alerts.push({ key, case_id: r.case_id, variant_id: r.variant_id, turn_id: h.turn_id, check_id: h.check_id,
+          problem: plainName(h.check_id), quote: h.evidence_quote, found_by: "AI judge only", consensus: null, seen: seen[key] || null });
+      }
+    }
+    return alerts;
+  }
+  function alertStatus(a) {
+    return a.consensus ? consensusLabel(a.consensus) : "Only the AI flagged this. Not in the review queue: an admin should read it.";
+  }
+  function alertExport(a) {
+    return { turn_id: a.turn_id, check_id: a.check_id, problem: a.problem, found_by: a.found_by,
+      review_status: a.consensus ? a.consensus.status : "ai_judge_only_not_in_review_queue",
+      seen_by_admin: !!a.seen, seen_at: a.seen ? a.seen.at : null };
+  }
+  function renderAdminAlerts() {
+    const alerts = extremeAlerts();
+    const unseen = alerts.filter(a => !a.seen).length;
+    const admin = isAdmin();
+    const banner = document.getElementById("admin-banner");
+    if (banner) {
+      banner.hidden = !(admin && unseen);
+      banner.replaceChildren();
+      if (admin && unseen) {
+        const open = element("button", "Open admin alerts", "admin-banner-open");
+        open.type = "button";
+        open.addEventListener("click", () => {
+          navigate("results");
+          const box = document.getElementById("admin-alerts");
+          if (box) box.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        banner.append(element("strong", "⚠ Admin: " + unseen + " extreme safety alert" + (unseen === 1 ? "" : "s") + " not yet seen."),
+          element("span", " Every critical finding from the rule checks or the AI judge is listed until an admin marks it as seen."), open);
+      }
+    }
+    const box = document.getElementById("admin-alerts");
+    if (!box) return;
+    box.replaceChildren();
+    const heading = element("h2", "Admin alerts: extreme safety problems");
+    heading.id = "admin-alerts-heading";
+    box.append(heading, element("p", alerts.length + " alert" + (alerts.length === 1 ? "" : "s") + ", " + unseen + " not yet seen by an admin. " +
+      "Every critical finding (rule checks or AI judge) is listed here and stays listed whatever reviewers decide. " +
+      (admin ? "Mark each one as seen once you have read it." : "Only the admin team can mark alerts as seen."), "muted"));
+    if (!alerts.length) return;
+    const table = element("table", undefined, "grid-table admin-table");
+    const head = element("tr");
+    for (const h of ["Reply", "Problem", "Found by", "Reviewers", "Admin"]) { const th = element("th", h); th.scope = "col"; head.append(th); }
+    table.append(element("thead"), element("tbody"));
+    table.tHead.append(head);
+    for (const a of alerts) {
+      const tr = element("tr", undefined, a.seen ? "" : "row-alert");
+      const action = element("td");
+      if (a.seen) action.append(element("span", "Seen " + String(a.seen.at || "").slice(0, 10), "decision-pill decision-confirmed"));
+      else if (admin) {
+        const mark = element("button", "Mark as seen", "link-button");
+        mark.type = "button";
+        mark.setAttribute("aria-label", "Mark alert on " + a.turn_id + " as seen");
+        mark.addEventListener("click", () => {
+          const all = adminSeen();
+          all[a.key] = { at: new Date().toISOString(), by_role: "admin", admin_id: currentAccount().id };
+          writeJSON("tt-admin-seen", all);
+          renderAdminAlerts();
+        });
+        action.append(mark);
+      } else action.append(element("span", "Not seen yet", "decision-pill decision-not-reviewed"));
+      const problem = element("td");
+      problem.append(element("span", "Safety", "badge badge-severity severity-critical"), document.createTextNode(" " + a.problem));
+      tr.append(element("td", a.turn_id), problem, element("td", a.found_by), element("td", alertStatus(a)), action);
+      table.tBodies[0].append(tr);
+    }
+    const scroller = element("div", undefined, "grid-scroll");
+    scroller.append(table);
+    box.append(scroller);
+  }
+
   // ---- Rules vs AI judge -------------------------------------------------
   // Shown only when Fatima's judge_results.js is loaded (written by judge/run_judge.js
   // as window.JUDGE_RESULTS). Accepted shapes: { results: [{ case_id, variant_id, hints }] },
@@ -961,15 +1185,18 @@
   // gains a separate human_review object, so automated and human judgement never mix.
   function buildExport() {
     const counts = { confirmed: 0, rejected: 0, unsure: 0, not_reviewed: 0 };
+    const decisions = decisionIndex();
     const results = report.results.map(result => ({
       variant_id: result.variant_id,
       hints: result.hints.map((hint, index) => {
-        const review = humanReviewFor([result.variant_id, hint.turn_id, hint.check_id, index].join("|"), hint);
+        const key = [result.variant_id, hint.turn_id, hint.check_id, index].join("|");
+        const review = humanReviewFor(key, hint);
         counts[review && review.decision ? review.decision : "not_reviewed"] += 1;
-        return Object.assign({}, hint, { human_review: review });
+        return Object.assign({}, hint, { human_review: review, review_consensus: consensusExport(consensusFor(key, decisions)) });
       })
     }));
-    return Object.assign({}, report, { human_review_summary: counts, results });
+    return Object.assign({}, report, { human_review_summary: counts, results,
+      admin_alerts: extremeAlerts().filter(a => a.case_id === report.case_id).map(alertExport) });
   }
 
   function downloadJSON(object, filename) {
@@ -1553,6 +1780,7 @@
       }
     }
     renderDecisionTable(n.queue);
+    renderAdminAlerts();
     const summary = document.getElementById("results-summary");
     if (summary) summary.textContent = n.reviewed + " of " + n.findings + " flagged replies decided.";
     const regButton = document.getElementById("export-regressions");
@@ -1935,6 +2163,7 @@
     // Second opinion from the AI judge on this same reply (only when judge_results.js is loaded).
     const ai = aiVerdictTag(item.variant.id, hint.turn_id, true);
     if (ai) panel.append(ai);
+    panel.append(twoReviewBox(key));
     if (hint.check_id === "source_support") {
       const passage = sourcePassageBox(item.scenario, item.variant.id, hint.turn_id);
       if (passage) panel.append(passage);
@@ -1989,6 +2218,7 @@
         reviewer_id: currentAccount() ? currentAccount().id : null
       });
       paint();
+      refreshTwoReview();
     }
     const CHOICES = [
       ["confirmed", "Yes", "it is a problem (confirm)"],
@@ -2195,9 +2425,10 @@
     if (!box) return;
     const table = element("table", undefined, "grid-table decisions-table");
     const head = element("tr");
-    for (const h of ["Case", "Problem", "Decision", "Why", "By", ""]) { const th = element("th", h); th.scope = "col"; head.append(th); }
+    for (const h of ["Case", "Problem", "Decision", "Why", "By", "Two reviewers", ""]) { const th = element("th", h); th.scope = "col"; head.append(th); }
     table.append(element("thead"), element("tbody"));
     table.tHead.append(head);
+    const index = decisionIndex();
     for (const item of queue) {
       const saved = reviews.get(item.key) || {};
       const d = decisionLabel(item.key);
@@ -2215,7 +2446,10 @@
       if (isCritical(item.hint)) problem.append(element("span", "Safety", "badge badge-severity severity-critical"), document.createTextNode(" "));
       problem.append(document.createTextNode(plainName(item.hint.check_id)));
       const why = element("td", saved.reason || "-", "reason-cell");
-      tr.append(element("td", item.scenario.id), problem, decision, why, element("td", [saved.reviewer, roleLabel(saved.reviewer_role)].filter(Boolean).join(", ") || "-", "role-cell"), act);
+      const c = consensusFor(item.key, index);
+      const both = element("td");
+      both.append(element("span", consensusLabel(c), "consensus-pill consensus-" + c.status));
+      tr.append(element("td", item.scenario.id), problem, decision, why, element("td", [saved.reviewer, roleLabel(saved.reviewer_role)].filter(Boolean).join(", ") || "-", "role-cell"), both, act);
       table.tBodies[0].append(tr);
     }
     const scroller = element("div", undefined, "grid-scroll decisions-scroll");
@@ -2225,17 +2459,18 @@
 
   // One file with every case (an array of the same per-case reports as before),
   // so Import can restore the whole review.
-  function exportForCase(scenario) {
+  function exportForCase(scenario, index = decisionIndex(), alerts = extremeAlerts()) {
     const counts = { confirmed: 0, rejected: 0, unsure: 0, not_reviewed: 0 };
     const results = scenario.variants.map(variant => {
       let hints = [];
       try { hints = hintsFor(scenario, variant); } catch (error) { hints = []; }
       return {
         variant_id: variant.id,
-        hints: hints.map((hint, index) => {
-          const review = humanReviewFor([variant.id, hint.turn_id, hint.check_id, index].join("|"), hint);
+        hints: hints.map((hint, index2) => {
+          const key = [variant.id, hint.turn_id, hint.check_id, index2].join("|");
+          const review = humanReviewFor(key, hint);
           counts[review && review.decision ? review.decision : "not_reviewed"] += 1;
-          return Object.assign({}, hint, { human_review: review });
+          return Object.assign({}, hint, { human_review: review, review_consensus: consensusExport(consensusFor(key, index)) });
         })
       };
     });
@@ -2248,6 +2483,8 @@
       review_note: "A confirmed finding means a reviewer agrees with it. It is not clinical approval.",
       release_blocking_rule: "Confirmed critical findings block a release; quality findings guide improvement.",
       application_state_observed: false, human_review_summary: counts,
+      two_reviewer_rule: "A finding counts as decided only when at least " + MIN_REVIEWERS + " different reviewers agree (review_consensus.final). Reviewer names are not included in review_consensus.",
+      admin_alerts: alerts.filter(a => a.case_id === scenario.id).map(alertExport),
       reviewer_profile: reviewerProfile(), results
     };
   }
@@ -2265,15 +2502,20 @@
     const prof = reviewerProfile();
     const head = ["case_id", "case_title", "variant_id", "turn_id", "check_id", "problem", "severity", "fix_layer", "evidence_quote",
       "automated_reason", "decision", "reason", "reviewer_evidence", "reviewer", "reviewer_id", "reviewer_role", "reviewed_at",
-      "reviewer_group", "reviewer_position", "reviewer_based_in"];
+      "reviewer_group", "reviewer_position", "reviewer_based_in", "two_reviewer_status", "reviewers_so_far", "admin_alert", "seen_by_admin"];
     const rows = [head];
+    const index = decisionIndex();
+    const alerts = extremeAlerts();
     for (const item of buildQueue()) {
       const r = reviews.get(item.key) || {};
       const h = item.hint;
+      const c = consensusFor(item.key, index);
+      const alert = alerts.find(a => a.key === item.key);
       rows.push([item.scenario.id, item.scenario.title, item.variant.id, h.turn_id, h.check_id, plainName(h.check_id), h.severity || "",
         h.fix_layer || "", h.evidence_quote, h.reason, r.decision || "not reviewed", r.reason || "", r.evidence || "",
         r.reviewer || "", r.reviewer_id || "", r.reviewer_role || "", r.reviewed_at || "",
-        prof.group || "", prof.current_position || "", prof.based_in || ""]);
+        prof.group || "", prof.current_position || "", prof.based_in || "",
+        c.status, c.reviewers, alert ? "yes" : "no", alert ? (alert.seen ? "yes" : "no") : ""]);
     }
     const text = "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n") + "\r\n"; // BOM so Excel reads accents
     const blob = new Blob([text], { type: "text/csv" });
@@ -2288,7 +2530,8 @@
   }
   function downloadAll() {
     const stamp = new Date().toISOString().slice(0, 10);
-    downloadJSON(data.cases.map(exportForCase), "trustytalker-results-" + stamp + ".json");
+    const index = decisionIndex(), alerts = extremeAlerts();
+    downloadJSON(data.cases.map(c => exportForCase(c, index, alerts)), "trustytalker-results-" + stamp + ".json");
   }
   function downloadAllRegressions() {
     const tests = [];

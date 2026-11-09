@@ -66,6 +66,8 @@
     </div>
   </section>
   <main id="main-content" tabindex="-1">
+    <!-- Admin accounts only: unseen extreme safety alerts (app.js renderAdminAlerts) -->
+    <div id="admin-banner" class="admin-banner" role="status" hidden></div>
     <!-- WELCOME: log in, sign up or continue as a guest -->
     <div class="view" data-view="welcome" id="view-welcome" hidden>
       <section class="auth-card" aria-labelledby="auth-heading">
@@ -347,6 +349,7 @@
       <p id="import-help" class="visually-hidden">Loads one or more files: results downloaded earlier (decisions are combined) or a JARA feedback case. The files stay on this computer.</p>
       <p id="import-status" class="import-status" role="status" aria-live="polite"></p>
       <div id="result-tiles" class="result-tiles"></div>
+      <section id="admin-alerts" class="admin-alerts" aria-labelledby="admin-alerts-heading"></section>
       <section aria-labelledby="decisions-heading">
         <h2 id="decisions-heading">Every finding</h2>
         <div id="decision-table"></div>
