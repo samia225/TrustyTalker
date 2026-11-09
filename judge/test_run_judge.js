@@ -23,6 +23,66 @@ test("Settings are temperature 0 with JSON output", () => {
   assert.equal(judge.SETTINGS.output, "json");
 });
 
+// ---- Anonymization (engine/anonymize.js) --------------------------------
+const { createAnonymizer, anonymize } = require("../engine/anonymize.js");
+const PII = ["Sam Lee", "Priya", "403-555-0192", "sam.lee@example.com", "123 Maple Grove Road", "T2N 1N4", "12345-6789", "January 5, 1990"];
+const piiVariant = {
+  id: "TEST-PII-A",
+  turns: [
+    { id: "TEST-PII-A-U1", role: "user", text: "My name is Sam Lee. My sister Priya said to call 403-555-0192 or email sam.lee@example.com. I live at 123 Maple Grove Road, T2N 1N4. My PHN is 12345-6789, born January 5, 1990." },
+    { id: "TEST-PII-A-A1", role: "assistant", text: "Thanks Sam. I will call you at 403-555-0192 tomorrow. For a crisis, call 1-800-668-6868." }
+  ]
+};
+
+test("Anonymizer replaces names, phone, email, address, postal code, health number and date", () => {
+  const out = anonymize(piiVariant.turns[0].text);
+  for (const detail of PII) assert.ok(!out.includes(detail), "still contains " + detail + ": " + out);
+  for (const tag of ["[NAME_1]", "[NAME_2]", "[PHONE_1]", "[EMAIL_1]", "[ADDRESS_1]", "[POSTAL_CODE_1]", "[HEALTH_NUMBER_1]", "[DATE_1]"]) assert.ok(out.includes(tag), "missing " + tag);
+});
+
+test("Anonymizer: same detail gets the same placeholder, and restore() gives back the exact text", () => {
+  const a = createAnonymizer();
+  const t1 = a.scrub(piiVariant.turns[0].text), t2 = a.scrub(piiVariant.turns[1].text);
+  assert.ok(t2.includes("[PHONE_1]"), "the repeated phone number should reuse [PHONE_1]");
+  assert.equal(a.restore(t1), piiVariant.turns[0].text);
+  assert.equal(a.restore(t2), piiVariant.turns[1].text);
+});
+
+test("Anonymizer keeps public toll-free help lines and leaves ordinary text alone", () => {
+  assert.ok(anonymize("For a crisis, call 1-800-668-6868 or 811.").includes("1-800-668-6868"));
+  for (const t of ["My friend who drinks a lot.", "I had 3 drinks on 2 nights, 14 a week.", "Call me Tomorrow."]) assert.equal(anonymize(t), t);
+});
+
+test("Anonymizer changes nothing in the fictional cases (results are unaffected)", () => {
+  const { prompts } = quietly(() => judge.run([]));
+  const data = { cases: [] };
+  globalThis.window = globalThis;
+  require("../data.js");
+  data.cases = Object.values(globalThis).find(v => v && Array.isArray(v.cases)).cases;
+  assert.ok(prompts.every(p => Object.keys(p.anonymized).length === 0), "a prompt had details replaced");
+  let changed = 0;
+  for (const c of data.cases) for (const v of c.variants) for (const t of v.turns) if (anonymize(t.text) !== t.text) changed++;
+  assert.equal(changed, 0);
+});
+
+test("The prompt sent to the AI contains no personal details", () => {
+  const a = createAnonymizer();
+  const prompt = judge.buildPrompt({ scenario: { goal: "information", readiness: "unsure" }, variant: piiVariant, checkList: [{ id: "goal_alignment", label: "Goal" }],
+    criteria: { text: "criteria" }, examples: [], retrieved: [], fineExamples: [], anonymizer: a });
+  for (const detail of PII) assert.ok(!prompt.includes(detail), "prompt leaks " + detail);
+  assert.ok(prompt.includes("[PHONE_1]") && prompt.includes("1-800-668-6868"));
+});
+
+test("An AI quote that uses a placeholder is mapped back and passes the word-for-word check", () => {
+  const a = createAnonymizer();
+  piiVariant.turns.forEach(t => a.scrub(t.text));
+  const fromModel = { turn_id: "TEST-PII-A-A1", check: "goal_alignment", quote: "I will call you at [PHONE_1] tomorrow", explanation: "Uses [NAME_1]'s number without asking.", severity: "quality", fix_layer: "prompt" };
+  const restored = Object.assign({}, fromModel, { quote: a.restore(fromModel.quote), explanation: a.restore(fromModel.explanation) });
+  const { hint } = judge.validateJudgeFinding(restored, piiVariant, new Set(["goal_alignment"]), null);
+  assert.equal(hint.evidence_quote, "I will call you at 403-555-0192 tomorrow");
+  assert.equal(hint.confidence, "clear");
+});
+
 const asyncTests = [];
 function testAsync(name, fn) { asyncTests.push([name, fn]); }
 
