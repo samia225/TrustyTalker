@@ -2121,6 +2121,15 @@
       }
       turns.append(node);
     }
+    // The whole conversation sits in its own scroll box (every message, nothing cut),
+    // opened at the flagged reply. tabindex lets keyboard users scroll it too.
+    turns.tabIndex = 0;
+    turns.setAttribute("role", "region");
+    turns.setAttribute("aria-label", "Whole conversation, " + variant.turns.length + " messages. Scroll to read it all.");
+    requestAnimationFrame(() => {
+      const target = turns.querySelector(".rv-target");
+      if (target && turns.scrollHeight > turns.clientHeight) turns.scrollTop = Math.max(0, target.offsetTop - 60);
+    });
     return turns;
   }
   function conversationFor(item) {

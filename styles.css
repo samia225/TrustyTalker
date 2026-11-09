@@ -573,7 +573,8 @@ main:focus { outline: none; }
 .rv-convo { min-width: 0; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel-alt); }
 .rv-convo-head h2 { margin: 0; font-size: 1.15rem; }
 .rv-convo-head p { margin: 2px 0 14px; font-size: .86rem; }
-.rv-turns { padding-top: 4px; }
+.rv-turns { position: relative; max-height: 60vh; overflow-y: auto; padding: 4px 6px 4px 0; overscroll-behavior: contain; }
+.rv-turns:focus-visible { outline: none; box-shadow: var(--focus); border-radius: var(--radius-md); }
 .rv-turns .turn-role { display: block; margin-bottom: 2px; color: var(--muted); font-size: .76rem; }
 .rv-turns .turn.user .turn-role { color: #f2f6ff; }
 .rv-turns .rv-context.assistant { opacity: .92; }
